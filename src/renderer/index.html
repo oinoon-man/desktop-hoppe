@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self';" />
+    <title>Hoppe</title>
+    <style>
+      /* Trickcal-toned UI font. Drop the font file into assets/fonts/ (see the
+         README there); until then it falls back to the system Korean font. */
+      @font-face {
+        /* 원스토어 ONE 모바일POP — 파일을 assets/fonts/one-mobile-pop.* 로 저장 */
+        font-family: "HoppeUI";
+        src:
+          url("./assets/fonts/one-mobile-pop.woff2") format("woff2"),
+          url("./assets/fonts/one-mobile-pop.woff") format("woff"),
+          url("./assets/fonts/one-mobile-pop.otf") format("opentype"),
+          url("./assets/fonts/one-mobile-pop.ttf") format("truetype");
+        font-display: swap;
+      }
+      :root {
+        --ui-font: "HoppeUI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: default;
+      }
+      #pet {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* --- labeled solid placeholder (states without real art yet) --------- */
+      #placeholder {
+        position: absolute;
+        left: 50%;
+        top: 175px;
+        width: 196px;
+        height: 196px;
+        transform: translate(-50%, -50%);
+        border-radius: 30px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        border: 3px solid rgba(255, 255, 255, 0.6);
+        color: #fff;
+        font: 800 22px/1.1 var(--ui-font);
+        letter-spacing: 1px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+        pointer-events: none;
+      }
+      /* sleep: reshape the box low & wide (lying down) + breathe, no label */
+      #placeholder.sleeping {
+        top: 224px;
+        width: 208px;
+        height: 128px;
+        border-radius: 58px;
+        animation: breathe 3.6s ease-in-out infinite;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1, 1);
+        }
+        50% {
+          transform: translate(-50%, -47%) scale(1.025, 0.965);
+        }
+      }
+
+      /* --- floating "Zzz" while sleeping (no art asset) -------------------- */
+      #zzz {
+        position: absolute;
+        left: 52%;
+        top: 108px;
+        width: 44px;
+        height: 64px;
+        display: none;
+        pointer-events: none;
+        font: 700 22px/1 var(--ui-font);
+        color: rgba(78, 104, 140, 0.9);
+      }
+      #zzz.show {
+        display: block;
+      }
+      #zzz span {
+        position: absolute;
+        left: 0;
+        top: 42px;
+        opacity: 0;
+        animation: zfloat 3s ease-in-out infinite;
+      }
+      #zzz span:nth-child(2) {
+        left: 9px;
+        font-size: 0.78em;
+        animation-delay: 1s;
+      }
+      #zzz span:nth-child(3) {
+        left: 16px;
+        font-size: 0.6em;
+        animation-delay: 2s;
+      }
+      @keyframes zfloat {
+        0% {
+          opacity: 0;
+          transform: translate(0, 10px) scale(0.7) rotate(-8deg);
+        }
+        25% {
+          opacity: 0.95;
+        }
+        70% {
+          opacity: 0.75;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(24px, -42px) scale(1.15) rotate(10deg);
+        }
+      }
+
+      /* --- speech bubble: clean CSS bubble in the bubble.png tone ----------- */
+      /* Crisp uniform outline (no raster 9-slice), small triangle tail. Text is
+         set via textContent; the tail is drawn with ::before (outline) + ::after
+         (fill). Right/bottom anchored so the tail stays over the pet's head. */
+      #bubble {
+        position: absolute;
+        right: 96px;
+        bottom: 196px;
+        isolation: isolate;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-width: 58px;
+        max-width: 192px;
+        padding: 9px 15px;
+        background: rgba(252, 253, 255, 0.97);
+        border: 2px solid #ccd5de;
+        border-radius: 19px;
+        color: #4a4038;
+        font: 400 15px/1.45 var(--ui-font);
+        text-align: center;
+        white-space: pre-wrap;
+        word-break: keep-all;
+        box-shadow: 0 4px 11px rgba(70, 85, 100, 0.2);
+        opacity: 0;
+        transform: translateY(6px) scale(0.94);
+        transform-origin: 80% 120%;
+        pointer-events: none;
+        transition:
+          opacity 180ms ease,
+          transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      #bubble::before {
+        /* tail outline (behind the body) */
+        content: "";
+        position: absolute;
+        z-index: -1;
+        right: 22px;
+        bottom: -12px;
+        border-left: 9px solid transparent;
+        border-right: 9px solid transparent;
+        border-top: 12px solid #ccd5de;
+      }
+      #bubble::after {
+        /* tail fill (over the body edge, hides the seam) */
+        content: "";
+        position: absolute;
+        right: 25px;
+        bottom: -7px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 8px solid rgba(252, 253, 255, 0.97);
+      }
+      #bubble.show {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      /* --- 속마음 (inner-thoughts) bubble variant ------------------------------
+         Same frame/shape + tail as the normal bubble; only the colors change.
+         Trickcal's 속마음 banner is a dark-purple body with a magenta glow that
+         blooms from the upper-center out to near-black purple edges, a faint
+         lighter rim along the top, and vivid pink-magenta text. Colors below are
+         eyedropped from the reference image. Keep the tail colors in sync: the
+         outline (::before) matches the border, the fill (::after) matches the
+         gradient's darkest (edge) color so the tail blends into the body. */
+      #bubble.thought {
+        /* magenta glow blooms from the LOWER-center up to dark purple at the top */
+        background:
+          radial-gradient(135% 165% at 50% 74%, #a53fbb 0%, #7a2a92 30%, #401850 64%, #200c2a 100%);
+        border-color: #542562;
+        color: #f06fd6;
+        text-shadow: 0 1px 3px rgba(18, 6, 26, 0.75);
+        box-shadow:
+          0 4px 12px rgba(40, 12, 55, 0.5),
+          inset 0 -1px 0 rgba(200, 128, 218, 0.4);
+      }
+      /* thought-bubble tail: two solid circles trailing down toward the pet
+         (not a triangle). Solid fill = the bubble's lower-body color. */
+      #bubble.thought::before,
+      #bubble.thought::after {
+        content: "";
+        position: absolute;
+        border: none;
+        border-radius: 50%;
+        background: #a53fbb;
+        z-index: -1;
+      }
+      #bubble.thought::after {
+        /* larger circle, closer to the body */
+        width: 12px;
+        height: 12px;
+        right: 26px;
+        bottom: -10px;
+      }
+      #bubble.thought::before {
+        /* smaller circle, trailing further away */
+        width: 7px;
+        height: 7px;
+        right: 18px;
+        bottom: -23px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="pet"></canvas>
+    <div id="placeholder"></div>
+    <div id="zzz"><span>z</span><span>z</span><span>z</span></div>
+    <div id="bubble"></div>
+    <script src="./assets/vendor/createjs.min.js"></script>
+    <script src="./assets/animate/Hoppe.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Trickcal-emoticon yellow squircle background -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE45C"/>
+      <stop offset="1" stop-color="#FFC53A"/>
+    </linearGradient>
+    <!-- green chibi body -->
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CDEE97"/>
+      <stop offset="1" stop-color="#A9DD6E"/>
+    </linearGradient>
+    <linearGradient id="tuft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8FC750"/>
+      <stop offset="1" stop-color="#79B33E"/>
+    </linearGradient>
+    <!-- window / monitor (desktop-buddy cue) -->
+    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAF1F7"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="24" y="24" width="464" height="464" rx="118" ry="118"/>
+    </clipPath>
+  </defs>
+
+  <!-- background -->
+  <rect x="24" y="24" width="464" height="464" rx="118" ry="118" fill="url(#bg)"/>
+  <rect x="24" y="24" width="464" height="464" rx="118" ry="118" fill="none" stroke="#F4A93A" stroke-width="6" opacity="0.55"/>
+
+  <g clip-path="url(#squircle)">
+    <!-- soft sun glow -->
+    <circle cx="256" cy="196" r="185" fill="#FFF0A8" opacity="0.55"/>
+
+    <!-- ===== desktop window (buddy climbs on it) ===== -->
+    <g>
+      <!-- window body -->
+      <rect x="96" y="352" width="320" height="150" rx="24" fill="url(#win)" stroke="#C9D4DE" stroke-width="6"/>
+      <!-- title bar -->
+      <rect x="96" y="352" width="320" height="46" rx="24" fill="#DCE6EF"/>
+      <rect x="96" y="384" width="320" height="16" fill="#DCE6EF"/>
+      <!-- traffic-light buttons -->
+      <circle cx="128" cy="375" r="9" fill="#FF6B6B"/>
+      <circle cx="156" cy="375" r="9" fill="#FFC93C"/>
+      <circle cx="184" cy="375" r="9" fill="#4ECB71"/>
+    </g>
+
+    <!-- ===== green chibi buddy peeking over the window top edge ===== -->
+    <g>
+      <!-- little hands gripping the window edge -->
+      <ellipse cx="176" cy="352" rx="26" ry="18" fill="url(#body)" stroke="#7FB84E" stroke-width="5"/>
+      <ellipse cx="336" cy="352" rx="26" ry="18" fill="url(#body)" stroke="#7FB84E" stroke-width="5"/>
+
+      <!-- body / head (rounded, borrowed silhouette) -->
+      <path d="M256 132
+               c74 0 132 52 132 128
+               c0 46 -30 84 -78 96
+               c-18 4 -90 4 -108 0
+               c-48 -12 -78 -50 -78 -96
+               c0 -76 58 -128 132 -128 Z"
+            fill="url(#body)" stroke="#7FB84E" stroke-width="6"/>
+
+      <!-- top leaf tuft -->
+      <path d="M256 92
+               c26 -34 62 -34 74 -14
+               c-6 26 -34 44 -60 48
+               c-2 -12 -8 -24 -14 -34 Z"
+            fill="url(#tuft)" stroke="#5E9530" stroke-width="4"/>
+      <path d="M256 92
+               c-26 -34 -62 -34 -74 -14
+               c6 26 34 44 60 48
+               c2 -12 8 -24 14 -34 Z"
+            fill="url(#tuft)" stroke="#5E9530" stroke-width="4"/>
+
+      <!-- cheeks -->
+      <ellipse cx="188" cy="252" rx="24" ry="15" fill="#F79AAE" opacity="0.75"/>
+      <ellipse cx="324" cy="252" rx="24" ry="15" fill="#F79AAE" opacity="0.75"/>
+
+      <!-- big shiny eyes -->
+      <ellipse cx="212" cy="224" rx="24" ry="30" fill="#2C2A2E"/>
+      <ellipse cx="300" cy="224" rx="24" ry="30" fill="#2C2A2E"/>
+      <circle cx="220" cy="214" r="8" fill="#FFFFFF"/>
+      <circle cx="308" cy="214" r="8" fill="#FFFFFF"/>
+      <circle cx="205" cy="234" r="4" fill="#FFFFFF" opacity="0.85"/>
+      <circle cx="293" cy="234" r="4" fill="#FFFFFF" opacity="0.85"/>
+
+      <!-- tiny happy mouth -->
+      <path d="M244 262 q12 14 24 0" fill="none" stroke="#2C2A2E" stroke-width="6" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>

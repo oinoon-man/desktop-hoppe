@@ -1,0 +1,64 @@
+{
+  "name": "desktop-hoppe",
+  "version": "0.0.2",
+  "private": true,
+  "description": "Desktop pet (Trickcal Revive fan project, non-commercial) — free-roaming desktop companion with window interaction and random speech bubbles.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "start": "npm run build && electron .",
+    "debug": "npm run build && electron . --debug",
+    "pack": "npm run build && electron-builder --dir",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.hoppe.desktoppet",
+    "productName": "Hoppe",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/koffi/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "oinoon-man",
+        "repo": "desktop-hoppe"
+      }
+    ]
+  },
+  "keywords": [
+    "desktop-pet",
+    "electron",
+    "trickcal",
+    "fan-project"
+  ],
+  "license": "SEE LICENSE IN README.md",
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.1.0",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
+    "png-to-ico": "^3.0.1",
+    "pngjs": "^7.0.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "koffi": "^3.1.0"
+  }
+}

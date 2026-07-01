@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self';" />
+    <title>투명도 조절</title>
+    <style>
+      @font-face {
+        font-family: "HoppeUI";
+        src: url("./assets/fonts/one-mobile-pop.woff") format("woff");
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        box-sizing: border-box;
+        padding: 0 26px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+        font-family: "HoppeUI", "Malgun Gothic", system-ui, sans-serif;
+        background: #f7f8fa;
+        color: #2b2f36;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .top .t {
+        font-size: 14px;
+      }
+      .top .v {
+        font-size: 19px;
+        color: #4a90e2;
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: #4a90e2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top"><span class="t">투명도</span><span class="v" id="val">100%</span></div>
+    <input type="range" id="slider" min="1" max="100" value="100" />
+    <script src="./opacity.js"></script>
+  </body>
+</html>
