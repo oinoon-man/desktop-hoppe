@@ -164,6 +164,11 @@ export class CreateJSAnimator {
     if (prev) prev.root.visible = false;
     next.root.visible = true;
     this.applyFacing(next.root, mode);
+    // Most motions loop (idle/walk/sleep/fall/drag). `land` is a one-shot settle:
+    // play it once and hold the final frame, otherwise CreateJS MovieClips loop by
+    // default and the land pose visibly re-plays while the sim holds the land state
+    // (most noticeable on short drops, where the fall is barely seen).
+    next.root.loop = mode !== 'land';
     if (typeof next.root.gotoAndPlay === 'function') next.root.gotoAndPlay(0);
     this.current = mode;
   }
