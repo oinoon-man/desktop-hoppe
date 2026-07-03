@@ -21,7 +21,7 @@ const FLOOR_BOUNCE = 0.42;
 const BOUNCE_MIN_SPEED = 220; // below this vertical speed on impact -> settle
 const MAX_SPEED = 3200; // clamp throw velocity (px/s)
 const SUPPORT_SNAP = 16; // px tolerance for staying on / riding a shelf
-const LAND_MS = 180;
+const LAND_MS = 500; // play the land motion and hold it 0.5s after a thrown pet touches down
 const DWELL_MIN_MS = 1500;
 const DWELL_RAND_MS = 2500;
 // When an idle dwell ends, weighted choice: walk, nap, or keep idling.

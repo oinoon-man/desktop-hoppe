@@ -103,8 +103,6 @@ export class PlaceholderAnimator implements IAnimator {
     drawBody(ctx, r);
     drawFace(ctx, r, eyes, mouth);
     ctx.restore();
-
-    if (this.clip === 'sleep') drawSleepZs(ctx, cx, cy, r, this.t);
   }
 }
 
@@ -179,17 +177,4 @@ function drawFace(ctx: CanvasRenderingContext2D, r: number, eyes: EyeStyle, mout
     ctx.arc(0, r * 0.3, r * 0.14, 0.15 * Math.PI, 0.85 * Math.PI);
     ctx.stroke();
   }
-}
-
-function drawSleepZs(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, t: number): void {
-  ctx.save();
-  ctx.fillStyle = '#5b5b5b';
-  ctx.font = '600 18px "Malgun Gothic", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  for (let i = 0; i < 2; i++) {
-    const p = (t / 1600 + i * 0.5) % 1;
-    ctx.globalAlpha = 0.7 * (1 - p);
-    ctx.fillText('z', cx + r * 0.55 + p * 20, cy - r * 0.75 - p * 34);
-  }
-  ctx.restore();
 }

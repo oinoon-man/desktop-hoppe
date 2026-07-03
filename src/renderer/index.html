@@ -59,72 +59,9 @@
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
         pointer-events: none;
       }
-      /* sleep: reshape the box low & wide (lying down) + breathe, no label */
-      #placeholder.sleeping {
-        top: 224px;
-        width: 208px;
-        height: 128px;
-        border-radius: 58px;
-        animation: breathe 3.6s ease-in-out infinite;
-      }
-      @keyframes breathe {
-        0%,
-        100% {
-          transform: translate(-50%, -50%) scale(1, 1);
-        }
-        50% {
-          transform: translate(-50%, -47%) scale(1.025, 0.965);
-        }
-      }
-
-      /* --- floating "Zzz" while sleeping (no art asset) -------------------- */
-      #zzz {
-        position: absolute;
-        left: 52%;
-        top: 108px;
-        width: 44px;
-        height: 64px;
-        display: none;
-        pointer-events: none;
-        font: 700 22px/1 var(--ui-font);
-        color: rgba(78, 104, 140, 0.9);
-      }
-      #zzz.show {
-        display: block;
-      }
-      #zzz span {
-        position: absolute;
-        left: 0;
-        top: 42px;
-        opacity: 0;
-        animation: zfloat 3s ease-in-out infinite;
-      }
-      #zzz span:nth-child(2) {
-        left: 9px;
-        font-size: 0.78em;
-        animation-delay: 1s;
-      }
-      #zzz span:nth-child(3) {
-        left: 16px;
-        font-size: 0.6em;
-        animation-delay: 2s;
-      }
-      @keyframes zfloat {
-        0% {
-          opacity: 0;
-          transform: translate(0, 10px) scale(0.7) rotate(-8deg);
-        }
-        25% {
-          opacity: 0.95;
-        }
-        70% {
-          opacity: 0.75;
-        }
-        100% {
-          opacity: 0;
-          transform: translate(24px, -42px) scale(1.15) rotate(10deg);
-        }
-      }
+      /* Sleep posture/zzz and the idle "breathe" bounce used to be faked here in
+         CSS; the real Animate art now carries its own motion, so the app only
+         loops the art (no app-side vertical bounce, no synthetic zzz). */
 
       /* --- speech bubble: clean CSS bubble in the bubble.png tone ----------- */
       /* Crisp uniform outline (no raster 9-slice), small triangle tail. Text is
@@ -234,10 +171,15 @@
   <body>
     <canvas id="pet"></canvas>
     <div id="placeholder"></div>
-    <div id="zzz"><span>z</span><span>z</span><span>z</span></div>
     <div id="bubble"></div>
     <script src="./assets/vendor/createjs.min.js"></script>
-    <script src="./assets/animate/Hoppe.js"></script>
+    <!-- One published Adobe Animate (CreateJS) composition per motion. -->
+    <script src="./assets/animate/motions/standing.js"></script>
+    <script src="./assets/animate/motions/run.js"></script>
+    <script src="./assets/animate/motions/grab.js"></script>
+    <script src="./assets/animate/motions/fall.js"></script>
+    <script src="./assets/animate/motions/land.js"></script>
+    <script src="./assets/animate/motions/sleep.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

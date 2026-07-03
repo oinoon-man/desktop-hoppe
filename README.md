@@ -65,7 +65,7 @@ npm run release
 - [x] **M1** — 상태머신(idle/walk/drag/fall/land) + 중력/던지기 물리 + 프레임 애니메이션 재생기 + assets 파이프라인
 - [x] **M2** — 행동 스케줄러(+수면) + 말풍선 UI + 상황별 대사 풀
 - [x] **M3** — Win32 창 감지(koffi FFI) → 창 위 올라타기·걷기·타고 이동 (Shimeji식)
-- [~] **M4 (라벨 대기)** — Adobe Animate → CreateJS 로더 구현·검증 완료(테스트 export의 단일 루프를 전 상태에 적용). 상태별 라벨 재생은 라벨 포함 export 대기 · 아트 규격: [ARTIST_GUIDE.md](assets/animate/ARTIST_GUIDE.md)
+- [x] **M4 — 아트 적용 완료** — 6개 모션 `.fla`(스탠딩/달리기/잡기/추락/착지/수면)를 Adobe Animate에서 HTML5 Canvas(CreateJS)로 퍼블리시 → 모션별 컴포지션을 상태에 매핑해 재생(`assets/animate/motions/`). 앱은 아트 루프만 담당(자체 바운스·zzz 제거) · 아트 규격: [ARTIST_GUIDE.md](assets/animate/ARTIST_GUIDE.md)
 - [x] **M5** — 트레이 설정(말풍선·올라타기·펫 수·자동시작) + 멀티 펫 + electron-builder 패키징
 - [~] **M6 (배포처 대기)** — electron-updater 자동 업데이트(GitHub Releases) + 펫 대사·트레이 알림. 코드 완료, `build.publish.owner`에 실제 저장소만 연결하면 동작
 

@@ -45,18 +45,6 @@ const placeholder = new PlaceholderAnimator();
 const frames = new FrameAnimator();
 const speech = new SpeechController(document.getElementById('bubble') as HTMLElement);
 const placeholderEl = document.getElementById('placeholder') as HTMLElement;
-const zzzEl = document.getElementById('zzz') as HTMLElement;
-
-// While a CreateJS composition is loaded, only these modes use the real Animate
-// motion; every other mode shows a labeled solid placeholder (art still TODO).
-const CJ_MODES = new Set<Mode>(['walk']);
-const MODE_COLORS: Record<string, string> = {
-  idle: '#7fb2e6',
-  drag: '#e6a86b',
-  fall: '#e67f7f',
-  land: '#7fcf9b',
-  sleep: '#a88fd6',
-};
 
 let mode: Mode = 'idle';
 let facing: 1 | -1 = 1;
@@ -93,38 +81,20 @@ cj.init().then((ready) => {
   cjActive = ready;
   if (ready) {
     cj.setFacing(facing);
+    cj.setClip(mode);
     updateStateVisual();
   } else {
     startCanvasLoop();
   }
 });
 
-// Route rendering per state: CreateJS motion for CJ_MODES, labeled placeholder
-// otherwise. No-op when there's no composition (the canvas loop handles visuals).
+// With the real Animate art loaded, every state is a published motion, so the
+// art just renders/loops for whatever mode is current. Without it, the canvas
+// loop (frame/placeholder animator) draws the pet instead. The DOM #placeholder
+// box is unused now.
 function updateStateVisual(): void {
-  const sleeping = mode === 'sleep';
-  zzzEl.classList.toggle('show', sleeping);
-  if (!cjActive) {
-    placeholderEl.style.display = 'none';
-    return;
-  }
-  if (CJ_MODES.has(mode)) {
-    placeholderEl.style.display = 'none';
-    placeholderEl.classList.remove('sleeping');
-    cj.setVisible(true);
-    return;
-  }
-  cj.setVisible(false);
-  if (sleeping) {
-    placeholderEl.textContent = '';
-    placeholderEl.classList.add('sleeping');
-    placeholderEl.style.background = '#8ba3bf';
-  } else {
-    placeholderEl.classList.remove('sleeping');
-    placeholderEl.textContent = mode.toUpperCase();
-    placeholderEl.style.background = MODE_COLORS[mode] ?? '#8aa0b8';
-  }
-  placeholderEl.style.display = 'flex';
+  placeholderEl.style.display = 'none';
+  if (cjActive) cj.setVisible(true);
 }
 
 window.addEventListener('resize', () => {
