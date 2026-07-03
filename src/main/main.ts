@@ -295,6 +295,7 @@ function buildTrayMenu(): Menu {
       },
     },
     { type: 'separator' },
+    { label: `ver. ${app.getVersion()}`, enabled: false },
     { label: '만든 사람들', click: () => openCredits() },
     { type: 'separator' },
     {
