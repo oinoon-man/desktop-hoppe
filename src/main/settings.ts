@@ -8,13 +8,14 @@ import path from 'node:path';
 export interface Settings {
   speech: boolean; // random speech bubbles on/off
   climbing: boolean; // stand/walk on other windows on/off
+  behind: boolean; // keep the pet behind other windows (don't cover them)
   pets: number; // number of pet instances (1..MAX_PETS)
   autostart: boolean; // launch at login
   opacity: number; // pet window opacity, 1..100 (%)
 }
 
 export const MAX_PETS = 4;
-const DEFAULTS: Settings = { speech: true, climbing: true, pets: 1, autostart: false, opacity: 100 };
+const DEFAULTS: Settings = { speech: true, climbing: true, behind: false, pets: 1, autostart: false, opacity: 100 };
 
 function file(): string {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -42,6 +43,7 @@ export function loadSettings(): Settings {
     return {
       speech: typeof raw.speech === 'boolean' ? raw.speech : DEFAULTS.speech,
       climbing: typeof raw.climbing === 'boolean' ? raw.climbing : DEFAULTS.climbing,
+      behind: typeof raw.behind === 'boolean' ? raw.behind : DEFAULTS.behind,
       pets: clampPets(raw.pets),
       autostart: typeof raw.autostart === 'boolean' ? raw.autostart : DEFAULTS.autostart,
       opacity: clampOpacity(raw.opacity),

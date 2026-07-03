@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, shell, gl
 import path from 'node:path';
 import fs from 'node:fs';
 import { PetSim } from './sim';
-import { initWindows, WindowWatcher, enumerateShelves } from './windows';
+import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from './windows';
 import { loadSettings, saveSettings, MAX_PETS, clampOpacity, type Settings } from './settings';
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall } from './updater';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
@@ -135,6 +135,7 @@ function createPet(index: number): Pet {
   window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   window.setIgnoreMouseEvents(true);
   window.setOpacity(effectiveOpacity());
+  applyBehindTo(window); // honor "윈도우 맨 뒤로" for freshly spawned pets
   if (hidden) window.hide();
   window.webContents.on('console-message', (e) => console.log('[renderer]', e.message));
 
@@ -146,6 +147,7 @@ function createPet(index: number): Pet {
     window.webContents.send('dialogue', dialogue);
     window.webContents.send('set-speech', settings.speech);
     if (isUpdateReady()) window.webContents.send('update-announce', UPDATE_ANNOUNCE_LINE);
+    applyBehindTo(window); // re-assert z-order once the window is fully realized
     const sim = new PetSim(window, PET_SIZE);
     sim.start();
     sim.setPlatforms(settings.climbing ? enumerateShelves() : []);
@@ -193,6 +195,20 @@ function applySpeech(): void {
 }
 function applyAutostart(): void {
   app.setLoginItemSettings({ openAtLogin: settings.autostart });
+}
+// "윈도우 맨 뒤로": when on, drop the always-on-top flag and push the window to
+// the bottom of the z-order so the pet sits behind other windows.
+function applyBehindTo(win: BrowserWindow): void {
+  if (win.isDestroyed()) return;
+  if (settings.behind) {
+    win.setAlwaysOnTop(false);
+    sendWindowToBottom(win.getNativeWindowHandle());
+  } else {
+    win.setAlwaysOnTop(true, 'screen-saver');
+  }
+}
+function applyBehind(): void {
+  for (const p of pets) applyBehindTo(p.window);
 }
 // The slider shows 1–100, but the applied opacity is floored at 10% so the pet
 // never becomes fully invisible (that is what 숨기기 is for).
@@ -259,6 +275,17 @@ function buildTrayMenu(): Menu {
         settings.climbing = !settings.climbing;
         saveSettings(settings);
         distributePlatforms(enumerateShelves());
+        rebuildTray();
+      },
+    },
+    {
+      label: '윈도우 맨 뒤로',
+      type: 'checkbox',
+      checked: settings.behind,
+      click: () => {
+        settings.behind = !settings.behind;
+        saveSettings(settings);
+        applyBehind();
         rebuildTray();
       },
     },

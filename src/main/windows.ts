@@ -24,8 +24,15 @@ let IsIconic: any;
 let GetWindowTextLengthW: any;
 let GetWindowTextW: any;
 let DwmGetWindowAttribute: any;
+let SetWindowPos: any;
 let enumCb: any = null;
 let collected: any[] = [];
+
+// SetWindowPos: keep the pet at the bottom of the z-order ("윈도우 맨 뒤로").
+const HWND_BOTTOM = 1;
+const SWP_NOSIZE = 0x0001;
+const SWP_NOMOVE = 0x0002;
+const SWP_NOACTIVATE = 0x0010;
 
 export function initWindows(): boolean {
   if (ready) return true;
@@ -43,6 +50,9 @@ export function initWindows(): boolean {
     DwmGetWindowAttribute = dwmapi.func(
       'int DwmGetWindowAttribute(void *hwnd, uint attr, _Out_ void *val, uint size)',
     );
+    SetWindowPos = user32.func(
+      'bool SetWindowPos(intptr_t hwnd, intptr_t after, int x, int y, int cx, int cy, uint flags)',
+    );
     const CB = k.proto('bool CB(void *hwnd, intptr_t lparam)');
     enumCb = k.register((h: any) => {
       collected.push(h);
@@ -58,6 +68,18 @@ export function initWindows(): boolean {
 
 export function isReady(): boolean {
   return ready;
+}
+
+/** Push a window to the bottom of the z-order (so it sits behind other apps).
+ *  `handle` is Electron's win.getNativeWindowHandle() buffer (x64 HWND). */
+export function sendWindowToBottom(handle: Buffer): void {
+  if (!ready || !SetWindowPos || handle.length < 8) return;
+  try {
+    const hwnd = handle.readBigUInt64LE(0);
+    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+  } catch (e) {
+    console.log('[windows] sendWindowToBottom failed:', (e as Error).message);
+  }
 }
 
 function titleOf(h: any): string {
