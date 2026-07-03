@@ -17,8 +17,6 @@ const TICK_MS = 16;
 const GRAVITY = 2600; // px/s^2
 const WALK_SPEED = 74; // px/s
 const WALL_BOUNCE = 0.4;
-const FLOOR_BOUNCE = 0.42;
-const BOUNCE_MIN_SPEED = 220; // below this vertical speed on impact -> settle
 const MAX_SPEED = 3200; // clamp throw velocity (px/s)
 const SUPPORT_SNAP = 16; // px tolerance for staying on / riding a shelf
 const LAND_MS = 500; // play the land motion and hold it 0.5s after a thrown pet touches down
@@ -369,16 +367,13 @@ export class PetSim {
       if (s) {
         this.y = s.feet - this.size;
         this.supportRect = s.rect;
-        if (Math.abs(this.vy) > BOUNCE_MIN_SPEED) {
-          this.vy = -this.vy * FLOOR_BOUNCE;
-          this.vx *= 0.7;
-        } else {
-          if (this.debug) {
-            const r = s.rect;
-            console.log('[sim] landed on', r ? `shelf @${r.x},${r.y} ${r.w}x${r.h}` : 'floor');
-          }
-          this.beginLand();
+        // No floor bounce: settle straight into the land motion on any impact, so
+        // the land clip plays once instead of stuttering through several tiny hops.
+        if (this.debug) {
+          const r = s.rect;
+          console.log('[sim] landed on', r ? `shelf @${r.x},${r.y} ${r.w}x${r.h}` : 'floor');
         }
+        this.beginLand();
       }
     }
   }
