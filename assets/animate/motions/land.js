@@ -171,27 +171,27 @@ if (reversed == null) { reversed = false; }
 	props.reversed = reversed;
 	cjs.MovieClip.apply(this,[props]);
 
-	// 레이어_3
-	this.instance = new lib.심볼6();
-	this.instance.setTransform(96.8,104.15,0.9623,1.0486,0,0,0,41.2,23.6);
-
-	this.timeline.addTween(cjs.Tween.get(this.instance).wait(1).to({regX:41.1,regY:23.5,scaleX:0.9842,scaleY:1.0203,x:96.6,y:116.05},0).wait(1).to({regY:23.6,scaleX:1,scaleY:1,x:96.7,y:124.8},0).to({y:130.5},1).wait(1).to({regY:23.5,y:133.6},0).wait(1).to({y:135.4},0).wait(1).to({y:136.3},0).wait(1).to({regY:23.6,y:136.65},0).to({y:130.5},7,cjs.Ease.cubicOut).wait(6));
-
 	// 레이어_1
-	this.instance_1 = new lib.심볼10();
-	this.instance_1.setTransform(109.3,272,0.964,1.0156,0,0,0,107,272);
+	this.instance = new lib.심볼6();
+	this.instance.setTransform(96.7,130.5,1,1,0,0,0,41.1,23.6);
 
-	this.instance_2 = new lib.심볼5();
-	this.instance_2.setTransform(111.8,269.9,1,1,0,0,0,108.1,242.8);
+	this.timeline.addTween(cjs.Tween.get(this.instance).wait(1).to({regY:23.5,y:133.6},0).wait(1).to({y:135.4},0).wait(1).to({y:136.3},0).wait(1).to({regY:23.6,y:136.65},0).to({y:130.5},4,cjs.Ease.cubicOut).to({regX:41.2,scaleX:0.9623,scaleY:1.0486,x:96.8,y:115.4},1).wait(1).to({regX:41.1,regY:23.5,scaleX:0.9842,scaleY:1.0203,x:96.6,y:109},0).wait(1).to({regY:23.6,scaleX:1,scaleY:1,x:96.7,y:104.6},0).wait(1));
+
+	// 레이어_2
+	this.instance_1 = new lib.심볼5();
+	this.instance_1.setTransform(111.8,269.9,1,1,0,0,0,108.1,242.8);
+
+	this.instance_2 = new lib.심볼10();
+	this.instance_2.setTransform(109.3,272.05,0.964,0.9572,0,0,0,107,272.1);
 	this.instance_2._off = true;
 
-	this.timeline.addTween(cjs.Tween.get(this.instance_1).to({regY:272.1,scaleX:1,scaleY:0.9072,y:272.15},2).to({_off:true,regX:108.1,regY:242.8,scaleY:1,x:111.8,y:269.9},1).wait(17));
-	this.timeline.addTween(cjs.Tween.get(this.instance_2).wait(2).to({_off:false},1).to({regX:108.2,scaleX:1.0347,scaleY:0.9778,x:111.9,y:269.95},4,cjs.Ease.cubicOut).to({regX:108.1,scaleX:1,scaleY:1,x:111.8,y:269.9},7,cjs.Ease.cubicOut).wait(6));
+	this.timeline.addTween(cjs.Tween.get(this.instance_1).to({regX:108.2,scaleX:1.0347,scaleY:0.9778,x:111.9,y:269.95},4,cjs.Ease.cubicOut).to({regX:108.1,scaleX:1,scaleY:1,x:111.8,y:269.9},4,cjs.Ease.cubicOut).to({_off:true,regX:107,regY:272.1,scaleX:0.964,scaleY:0.9572,x:109.3,y:272.05},1,cjs.Ease.cubicOut).wait(3));
+	this.timeline.addTween(cjs.Tween.get(this.instance_2).wait(8).to({_off:false},1,cjs.Ease.cubicOut).to({regY:272,scaleY:1.0156,y:272},2).wait(1));
 
 	this._renderFirstFrame();
 
 }).prototype = p = new cjs.MovieClip();
-p.nominalBounds = new cjs.Rectangle(0,-4.2,223.7,276.4);
+p.nominalBounds = new cjs.Rectangle(0,-4.2,223.7,276.3);
 
 
 // stage content:
@@ -208,14 +208,14 @@ if (reversed == null) { reversed = false; }
 
 	// 심볼_11
 	this.instance = new lib.심볼11("synched",0);
-	this.instance.setTransform(148,155.3,1,1,0,0,0,111.9,136.1);
+	this.instance.setTransform(148,164,1,1,0,0,0,111.9,136.1);
 
-	this.timeline.addTween(cjs.Tween.get(this.instance).wait(20));
+	this.timeline.addTween(cjs.Tween.get(this.instance).wait(12));
 
 	this._renderFirstFrame();
 
 }).prototype = p = new lib.AnMovieClip();
-p.nominalBounds = new cjs.Rectangle(186.1,165,73.70000000000002,126.39999999999998);
+p.nominalBounds = new cjs.Rectangle(186.1,173.7,73.70000000000002,126.30000000000001);
 // library properties:
 lib.properties = {
 	id: '0F289A16700CB44189DCA7ABE1BF0D0B',

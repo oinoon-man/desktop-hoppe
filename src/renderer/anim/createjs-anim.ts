@@ -125,16 +125,26 @@ export class CreateJSAnimator {
     return this.ready;
   }
 
-  /** Horizontal mirror to match the sim's facing (art authored facing right). */
+  /** Horizontal mirror to match the sim's facing. */
   setFacing(facing: number): void {
     this.facing = facing < 0 ? -1 : 1;
-    const c = this.current ? this.clips.get(this.current) : null;
-    if (c) this.applyFacing(c.root);
+    if (this.current) {
+      const c = this.clips.get(this.current);
+      if (c) this.applyFacing(c.root, this.current);
+    }
   }
 
-  private applyFacing(root: Any): void {
-    root.scaleX = this.facing < 0 ? -1 : 1;
-    root.x = this.facing < 0 ? this.width : 0;
+  // The art is authored facing LEFT, so the baseline is mirrored to make it face
+  // right; the sim's facing then flips it. `sleep` is exempt — it always keeps
+  // its authored orientation (no left/right mirroring).
+  private applyFacing(root: Any, mode: Mode): void {
+    if (mode === 'sleep') {
+      root.scaleX = 1;
+      root.x = 0;
+      return;
+    }
+    root.scaleX = this.facing < 0 ? 1 : -1;
+    root.x = this.facing < 0 ? 0 : this.width;
   }
 
   /** Swap to the composition for `clip` (restarts it from frame 0). */
@@ -153,7 +163,7 @@ export class CreateJSAnimator {
     const prev = this.current ? this.clips.get(this.current) : null;
     if (prev) prev.root.visible = false;
     next.root.visible = true;
-    this.applyFacing(next.root);
+    this.applyFacing(next.root, mode);
     if (typeof next.root.gotoAndPlay === 'function') next.root.gotoAndPlay(0);
     this.current = mode;
   }

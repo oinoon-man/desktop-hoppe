@@ -279,14 +279,14 @@ if (reversed == null) { reversed = false; }
 
 	// 레이어_1
 	this.instance = new lib.심볼1("synched",0);
-	this.instance.setTransform(150.85,148.25,1.2149,1.2149,0,0,0,87.7,115.5);
+	this.instance.setTransform(150.85,159.9,1.2149,1.2149,0,0,0,87.7,115.5);
 
 	this.timeline.addTween(cjs.Tween.get(this.instance).wait(40));
 
 	this._renderFirstFrame();
 
 }).prototype = p = new lib.AnMovieClip();
-p.nominalBounds = new cjs.Rectangle(190.5,158,79.10000000000002,130.5);
+p.nominalBounds = new cjs.Rectangle(190.5,169.6,79.10000000000002,130.50000000000003);
 // library properties:
 lib.properties = {
 	id: 'D662FBD8605A664EA97C4A28D7E2DC0A',
