@@ -11,7 +11,8 @@
     "start": "npm run build && electron .",
     "debug": "npm run build && electron . --debug",
     "pack": "npm run build && electron-builder --dir",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist:win": "npm run build && electron-builder --win",
+    "release": "node scripts/release.mjs"
   },
   "build": {
     "appId": "com.hoppe.desktoppet",
@@ -31,6 +32,12 @@
         "nsis",
         "portable"
       ]
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}.${ext}"
     },
     "publish": [
       {

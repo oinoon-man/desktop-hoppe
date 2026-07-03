@@ -5,3 +5,6 @@ release/
 *.log
 .DS_Store
 Thumbs.db
+
+# transient Claude Code runtime lock (was accidentally committed)
+.claude/scheduled_tasks.lock

@@ -34,13 +34,23 @@ npm run dist:win     # 설치본(NSIS) + 포터블 빌드 (release/*.exe)
 트레이에 **"✨ 지금 업데이트"** 항목이 생겨 즉시 재시작·설치할 수 있어요. (포터블 exe는 설치
 과정이 없어 자동 업데이트 대상이 아니며, `npm start` 개발 실행에서도 비활성입니다.)
 
-**배포처 설정 (실제 동작에 필수):**
+**새 버전 배포 (`npm run release`):**
 
-1. 공개 GitHub 저장소를 만들고 `package.json`의 `build.publish.owner`를 그 계정명으로 교체
-   (현재 `REPLACE_WITH_GITHUB_OWNER`, `repo`는 `desktop-hoppe`).
-2. `package.json`의 `version`을 올린다 (SemVer; 1.0.0 이전은 개발 단계).
-3. `GH_TOKEN` 환경변수(repo 권한 PAT)를 설정하고 `npx electron-builder --win --publish always`
-   로 빌드+릴리스 업로드. 그러면 설치된 앱들이 다음 체크 때 새 버전을 받습니다.
+```bash
+# 0회차: gh CLI 로그인 (repo 권한)
+gh auth login
+
+# 1. package.json "version" 올림 (SemVer; 1.0.0 이전은 개발 단계)
+# 2. 커밋 & 푸시 (태그는 origin/main 기준으로 잘림)
+git commit -am "Release v0.0.3" && git push
+# 3. 빌드 + GitHub Releases 발행 (설치본·포터블·latest.yml 업로드까지 한 번에)
+npm run release
+#    미리보기만:  npm run release -- --dry-run
+```
+
+[scripts/release.mjs](scripts/release.mjs)가 작업 트리·태그·푸시 상태를 확인하고, 빌드 후
+`gh release create`로 태그+발행+자산 업로드를 한 번에 처리합니다. 발행되면 설치된 앱들이
+다음 실행 때 새 버전을 받습니다. (배포처는 `package.json`의 `build.publish` = `oinoon-man/desktop-hoppe`.)
 
 - **트레이 아이콘:** (업데이트 준비 시 ✨ 지금 업데이트) · 말풍선 on/off · 창 위 올라타기 on/off · 펫 수(1–4) · **대사 편집…** · 로그인 시 자동 실행 · 종료
 - **대사 편집:** 트레이 → 대사 편집 창에서 상황별로 한 줄에 하나씩 입력·저장 → 실행 중 펫에 즉시 반영 (`%APPDATA%\desktop-hoppe\dialogue.json`)
