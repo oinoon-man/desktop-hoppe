@@ -5,6 +5,7 @@ import { PetSim } from './sim';
 import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from './windows';
 import { loadSettings, saveSettings, MAX_PETS, clampOpacity, type Settings } from './settings';
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall } from './updater';
+import { t, LOCALES, LOCALE_LABELS, type Locale } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
 
 // ---------------------------------------------------------------------------
@@ -91,7 +92,14 @@ function sanitizeDialogue(raw: unknown): PetDialogue {
   return out;
 }
 
-function loadDialogue(): PetDialogue {
+function dialogueFile(locale: Locale): string {
+  return locale === 'ko' ? 'dialogue.json' : `dialogue.${locale}.json`;
+}
+
+function loadDialogue(locale: Locale): PetDialogue {
+  const d = sanitizeDialogue(readJson<PetDialogue>(path.join('assets', 'data', dialogueFile(locale)), {}));
+  // Fall back to the Korean pool if a locale file is missing or empty.
+  if (Object.keys(d).length > 0 || locale === 'ko') return d;
   return sanitizeDialogue(readJson<PetDialogue>(path.join('assets', 'data', 'dialogue.json'), {}));
 }
 
@@ -137,7 +145,7 @@ function createPet(index: number): Pet {
     window.webContents.send('manifest', manifest);
     window.webContents.send('dialogue', dialogue);
     window.webContents.send('set-speech', settings.speech);
-    if (isUpdateReady()) window.webContents.send('update-announce', UPDATE_ANNOUNCE_LINE);
+    if (isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     const sim = new PetSim(window, PET_SIZE);
     sim.start();
@@ -224,30 +232,55 @@ function setHidden(h: boolean): void {
 
 // --- auto-update announce --------------------------------------------------
 // When an update is ready the pet speaks up (a one-off notice) and the tray
-// grows a "지금 업데이트" item. The line the pet says:
-const UPDATE_ANNOUNCE_LINE = '업데이트가 있대요!';
+// grows a "지금 업데이트" item. The line the pet says (in the current language):
+function announceLine(): string {
+  return t(settings.locale, 'updateAnnounce');
+}
 
 function announceUpdate(): void {
   for (const p of pets) {
-    if (!p.window.isDestroyed()) p.window.webContents.send('update-announce', UPDATE_ANNOUNCE_LINE);
+    if (!p.window.isDestroyed()) p.window.webContents.send('update-announce', announceLine());
   }
 }
 
 // --- tray ------------------------------------------------------------------
 
 function buildTrayMenu(): Menu {
+  const l = settings.locale;
   const updateItems: Electron.MenuItemConstructorOptions[] = isUpdateReady()
     ? [
-        { label: `✨ 지금 업데이트 (v${updateReadyVersion()})`, click: () => quitAndInstall() },
+        { label: t(l, 'updateNow').replace('{v}', updateReadyVersion()), click: () => quitAndInstall() },
         { type: 'separator' },
       ]
     : [];
+  // "버터가 복사가 된다고": pick how many pets run (1..MAX_PETS).
+  const copiesSubmenu: Electron.MenuItemConstructorOptions[] = Array.from(
+    { length: MAX_PETS },
+    (_, i) => i + 1,
+  ).map((n) => ({
+    label: String(n),
+    type: 'radio',
+    checked: settings.pets === n,
+    click: () => {
+      settings.pets = n;
+      saveSettings(settings);
+      setPetCount(n);
+      rebuildTray();
+    },
+  }));
+  // Language picker (한국어 / 日本語 / English).
+  const languageSubmenu: Electron.MenuItemConstructorOptions[] = LOCALES.map((loc) => ({
+    label: LOCALE_LABELS[loc],
+    type: 'radio',
+    checked: settings.locale === loc,
+    click: () => setLocale(loc),
+  }));
   return Menu.buildFromTemplate([
     { label: 'Hoppe - The Desktop Butter', enabled: false },
     { type: 'separator' },
     ...updateItems,
     {
-      label: '말풍선 켜기/끄기',
+      label: t(l, 'speechToggle'),
       type: 'checkbox',
       checked: settings.speech,
       click: () => {
@@ -258,7 +291,7 @@ function buildTrayMenu(): Menu {
       },
     },
     {
-      label: '윈도우와 상호작용 켜기/끄기',
+      label: t(l, 'interactToggle'),
       type: 'checkbox',
       checked: settings.climbing,
       enabled: climbingAvailable,
@@ -270,7 +303,7 @@ function buildTrayMenu(): Menu {
       },
     },
     {
-      label: '윈도우 맨 뒤로',
+      label: t(l, 'behind'),
       type: 'checkbox',
       checked: settings.behind,
       click: () => {
@@ -280,11 +313,12 @@ function buildTrayMenu(): Menu {
         rebuildTray();
       },
     },
-    { label: '실종된 애 불러오기', click: () => resetPositions() },
-    { label: '투명도 조절', click: () => openOpacityWindow() },
+    { label: t(l, 'copies'), submenu: copiesSubmenu },
+    { label: t(l, 'recall'), click: () => resetPositions() },
+    { label: t(l, 'opacity'), click: () => openOpacityWindow() },
     { type: 'separator' },
     {
-      label: '로그인 시 자동 실행',
+      label: t(l, 'autostart'),
       type: 'checkbox',
       checked: settings.autostart,
       click: () => {
@@ -296,10 +330,11 @@ function buildTrayMenu(): Menu {
     },
     { type: 'separator' },
     { label: `ver. ${app.getVersion()}`, enabled: false },
-    { label: '만든 사람들', click: () => openCredits() },
+    { label: t(l, 'language'), submenu: languageSubmenu },
+    { label: t(l, 'credits'), click: () => openCredits() },
     { type: 'separator' },
     {
-      label: '숨기기',
+      label: t(l, 'hide'),
       type: 'checkbox',
       checked: hidden,
       click: () => {
@@ -307,8 +342,21 @@ function buildTrayMenu(): Menu {
         rebuildTray();
       },
     },
-    { label: '종료 (Ctrl+Shift+Q)', click: () => app.quit() },
+    { label: t(l, 'quit'), click: () => app.quit() },
   ]);
+}
+
+// Switch UI + dialogue language: persist it, swap the pets' dialogue pool, and
+// refresh the tray and any open child windows so everything re-renders localized.
+function setLocale(loc: Locale): void {
+  if (loc === settings.locale) return;
+  settings.locale = loc;
+  saveSettings(settings);
+  dialogue = loadDialogue(loc);
+  for (const p of pets) if (!p.window.isDestroyed()) p.window.webContents.send('dialogue', dialogue);
+  if (creditsWindow && !creditsWindow.isDestroyed()) loadCredits(creditsWindow);
+  if (opacityWindow && !opacityWindow.isDestroyed()) loadOpacity(opacityWindow);
+  rebuildTray();
 }
 
 function rebuildTray(): void {
@@ -325,6 +373,10 @@ function createTray(): void {
 
 // --- credits popup ---------------------------------------------------------
 
+function loadCredits(win: BrowserWindow): void {
+  void win.loadFile(path.join(__dirname, 'credits.html'), { query: { loc: settings.locale } });
+}
+
 function openCredits(): void {
   if (creditsWindow && !creditsWindow.isDestroyed()) {
     creditsWindow.show();
@@ -334,7 +386,7 @@ function openCredits(): void {
   creditsWindow = new BrowserWindow({
     width: 380,
     height: 402,
-    title: '만든 사람들',
+    title: t(settings.locale, 'credits'),
     center: true,
     resizable: false,
     minimizable: false,
@@ -355,13 +407,17 @@ function openCredits(): void {
     e.preventDefault();
     openExternal(url);
   });
-  void creditsWindow.loadFile(path.join(__dirname, 'credits.html'));
+  loadCredits(creditsWindow);
   creditsWindow.on('closed', () => {
     creditsWindow = null;
   });
 }
 
 // --- opacity slider window -------------------------------------------------
+
+function loadOpacity(win: BrowserWindow): void {
+  void win.loadFile(path.join(__dirname, 'opacity.html'), { query: { loc: settings.locale } });
+}
 
 function openOpacityWindow(): void {
   if (opacityWindow && !opacityWindow.isDestroyed()) {
@@ -372,7 +428,7 @@ function openOpacityWindow(): void {
   opacityWindow = new BrowserWindow({
     width: 320,
     height: 148,
-    title: '투명도 조절',
+    title: t(settings.locale, 'opacity'),
     center: true,
     resizable: false,
     minimizable: false,
@@ -385,7 +441,7 @@ function openOpacityWindow(): void {
       nodeIntegration: false,
     },
   });
-  void opacityWindow.loadFile(path.join(__dirname, 'opacity.html'));
+  loadOpacity(opacityWindow);
   opacityWindow.on('closed', () => {
     opacityWindow = null;
   });
@@ -410,7 +466,7 @@ ipcMain.on('set-opacity', (_e, v: number) => {
 app.whenReady().then(() => {
   settings = loadSettings();
   manifest = readJson<PetManifest>(path.join('assets', 'prototype', 'manifest.json'), { clips: {} });
-  dialogue = loadDialogue();
+  dialogue = loadDialogue(settings.locale);
   applyAutostart();
 
   climbingAvailable = initWindows();

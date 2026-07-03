@@ -48,6 +48,13 @@ const targets = [
     platform: 'browser',
     format: 'iife',
   },
+  {
+    ...common,
+    entryPoints: ['src/renderer/credits.ts'],
+    outfile: `${outdir}/credits.js`,
+    platform: 'browser',
+    format: 'iife',
+  },
 ];
 
 async function copyStatic() {

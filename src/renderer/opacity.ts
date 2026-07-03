@@ -1,11 +1,21 @@
 // Opacity slider renderer. Reads the current opacity from main, and pushes live
 // updates as the slider moves (main applies it to every pet window + persists).
 
+import { t, isLocale, type Locale } from '../shared/i18n';
+
 interface OpacityAPI {
   get: () => Promise<number>;
   set: (v: number) => void;
 }
 const api = (window as unknown as { opacityAPI: OpacityAPI }).opacityAPI;
+
+// Localize the label + window title from the ?loc= query main passes on load.
+const rawLoc = new URLSearchParams(location.search).get('loc');
+const loc: Locale = isLocale(rawLoc) ? rawLoc : 'ko';
+document.documentElement.lang = loc;
+document.title = t(loc, 'opacity');
+const label = document.getElementById('label');
+if (label) label.textContent = t(loc, 'opacityLabel');
 
 const slider = document.getElementById('slider') as HTMLInputElement;
 const val = document.getElementById('val') as HTMLElement;

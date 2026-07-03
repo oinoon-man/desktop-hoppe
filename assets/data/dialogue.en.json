@@ -1,0 +1,50 @@
+{
+  "greeting": [
+    "Butter’s here!",
+    "Master! Hello!",
+    "Are we going for a walk?",
+    "Butter’s healthy today too!",
+    "Ta-da, Butter’s here!"
+  ],
+  "idle": [
+    "I’m bored…",
+    "What are we doing today?",
+    "Where’s Komi?",
+    "I smell kibble somewhere!",
+    "I don’t like things too sweet…",
+    "A chain-scythe…? What’s this…?",
+    "Have you seen the village chief?",
+    "What are you up to, Master?",
+    "My paws are so itchy…!",
+    "Butter will keep watch!"
+  ],
+  "walk": [
+    "Butter loves walks!",
+    "I’m gonna run all over!",
+    "Adventure!",
+    "What’s over there?",
+    "Heave-ho, heave-ho!",
+    "Butter loves walks!",
+    "I think I saw a butterfly!"
+  ],
+  "sleep": [
+    { "text": "Zzz…", "thought": true },
+    { "text": "Off in dreamland…", "thought": true },
+    { "text": "Hehe… Master…", "thought": true },
+    { "text": "A mountain of kibble…", "thought": true },
+    { "text": "Out cold…", "thought": true }
+  ],
+  "drag": [
+    "Whoa!",
+    "Where are we going?"
+  ],
+  "fall": [
+    "Waaah—"
+  ],
+  "land": [
+    "Hup!",
+    "Nailed the landing!",
+    "Landed!",
+    "Butter’s landed!"
+  ]
+}

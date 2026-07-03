@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isLocale, type Locale } from '../shared/i18n';
 
 // Persisted user settings (userData/settings.json). Small and forgiving: unknown,
 // BOM-prefixed, or corrupt files fall back to defaults.
@@ -12,10 +13,19 @@ export interface Settings {
   pets: number; // number of pet instances (1..MAX_PETS)
   autostart: boolean; // launch at login
   opacity: number; // pet window opacity, 1..100 (%)
+  locale: Locale; // UI + dialogue language (ko/ja/en)
 }
 
-export const MAX_PETS = 4;
-const DEFAULTS: Settings = { speech: true, climbing: true, behind: false, pets: 1, autostart: false, opacity: 100 };
+export const MAX_PETS = 5;
+const DEFAULTS: Settings = {
+  speech: true,
+  climbing: true,
+  behind: false,
+  pets: 1,
+  autostart: false,
+  opacity: 100,
+  locale: 'ko',
+};
 
 function file(): string {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -47,6 +57,7 @@ export function loadSettings(): Settings {
       pets: clampPets(raw.pets),
       autostart: typeof raw.autostart === 'boolean' ? raw.autostart : DEFAULTS.autostart,
       opacity: clampOpacity(raw.opacity),
+      locale: isLocale(raw.locale) ? raw.locale : DEFAULTS.locale,
     };
   } catch {
     return { ...DEFAULTS };
