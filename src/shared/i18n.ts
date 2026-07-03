@@ -49,7 +49,6 @@ const UI = {
   // Credits window
   rolePlanDev: { ko: '기획 · 개발', ja: '企画・開発', en: 'Design · Dev' },
   roleGraphic: { ko: '그래픽', ja: 'グラフィック', en: 'Art' },
-  ytPreparing: { ko: 'YouTube (준비 중)', ja: 'YouTube（準備中）', en: 'YouTube (coming soon)' },
   contact: {
     ko: 'Discord로 문의해 주세요',
     ja: 'Discordでお問い合わせください',
@@ -57,9 +56,9 @@ const UI = {
   },
   feedback: { ko: '건의사항 및 버그 제보', ja: 'ご意見・バグ報告', en: 'Feedback & bug reports' },
   disclaimer: {
-    ko: '본 프로젝트는 Trickcal: Revive의 2차 창작 프로젝트로, 공식 가이드라인을 준수합니다.',
-    ja: '本プロジェクトは『Trickcal: Revive』の二次創作であり、公式ガイドラインを遵守しています。',
-    en: 'A non-commercial Trickcal: Revive fan project, in line with the official guidelines.',
+    ko: '본 프로젝트는 Trickcal: Revive의 2차 창작 프로젝트로,\n공식 가이드라인을 준수합니다.',
+    ja: '本プロジェクトは『Trickcal: Revive』の二次創作であり、\n公式ガイドラインを遵守しています。',
+    en: 'A non-commercial Trickcal: Revive fan project,\nin line with the official guidelines.',
   },
 } as const;
 
