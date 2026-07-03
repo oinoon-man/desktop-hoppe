@@ -17,7 +17,7 @@
 //   npm run release -- --dry-run    build + validate, but print the gh command
 //                                   instead of publishing
 import { execSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const dryRun = process.argv.includes('--dry-run');
@@ -102,8 +102,13 @@ for (const a of assets) {
 
 // --- 4. publish ------------------------------------------------------------
 const notes = `${productName} ${version} 릴리스. 설치본(${setupName}) 권장 · 포터블(${portableName})도 제공. 설치본은 실행 중 자동 업데이트됩니다.`;
+// Write the notes to a UTF-8 file and pass --notes-file, NOT inline --notes: a
+// shell mangles multi-byte (Korean) text on the command line (Windows cmd turned
+// it into mojibake), so the release description came out garbled.
+const notesFile = join(rel, 'RELEASE_NOTES.md');
+writeFileSync(notesFile, notes, 'utf-8');
 const assetArgs = assets.map((a) => `"${a}"`).join(' ');
-const ghCmd = `gh release create ${tag} ${assetArgs} -R ${slug} --target main --title "${productName} ${version}" --notes "${notes}" --latest`;
+const ghCmd = `gh release create ${tag} ${assetArgs} -R ${slug} --target main --title "${productName} ${version}" --notes-file "${notesFile}" --latest`;
 
 if (dryRun) {
   console.log(`\n[dry-run] build OK, ${assets.length} assets present. Would publish with:\n${ghCmd}\n`);
