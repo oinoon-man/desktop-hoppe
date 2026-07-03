@@ -390,7 +390,8 @@ function openCredits(): void {
   }
   creditsWindow = new BrowserWindow({
     width: 380,
-    height: 402,
+    height: 286, // web-content height (useContentSize) — fits the credits layout
+    useContentSize: true,
     title: t(settings.locale, 'credits'),
     center: true,
     resizable: false,

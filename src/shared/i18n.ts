@@ -49,11 +49,6 @@ const UI = {
   // Credits window
   rolePlanDev: { ko: '기획 · 개발', ja: '企画・開発', en: 'Design · Dev' },
   roleGraphic: { ko: '그래픽', ja: 'グラフィック', en: 'Art' },
-  contact: {
-    ko: 'Discord로 문의해 주세요',
-    ja: 'Discordでお問い合わせください',
-    en: 'Contact us via Discord',
-  },
   feedback: { ko: '건의사항 및 버그 제보', ja: 'ご意見・バグ報告', en: 'Feedback & bug reports' },
   disclaimer: {
     ko: '본 프로젝트는 Trickcal: Revive의 2차 창작 프로젝트로,\n공식 가이드라인을 준수합니다.',
