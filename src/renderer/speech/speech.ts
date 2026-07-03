@@ -18,8 +18,10 @@ const MIN_SHOW_MS = 2600;
 const MAX_SHOW_MS = 7500;
 const SHOW_BASE_MS = 1900;
 const SHOW_PER_CHAR_MS = 145;
-// One-off notices (e.g. "update available") linger a bit longer than chatter.
-const ANNOUNCE_SHOW_MS = 6500;
+// One-off notices (e.g. "update available") are pinned: they stay up for a full
+// minute so the user can spot them after a restart, and no ambient/event line can
+// overwrite or hide them while pinned.
+const ANNOUNCE_PIN_MS = 60000;
 const AMBIENT_MODES: ReadonlySet<Mode> = new Set(['idle', 'walk', 'sleep']);
 
 /** A dialogue line normalized to a common shape (see DialogueLine in types). */
@@ -37,6 +39,7 @@ export class SpeechController {
   private enabled = true;
   private greeted = false;
   private cooldownUntil = 0;
+  private pinnedUntil = 0; // announce bubble stays put until this time
   private showTimer = 0;
   private ambientTimer = 0;
   private lastLine: Partial<Record<DialogueCategory, string>> = {};
@@ -66,10 +69,14 @@ export class SpeechController {
     this.enabled = on;
     if (!on) {
       window.clearTimeout(this.ambientTimer);
-      this.hide();
+      if (!this.isPinned()) this.hide(); // keep a pinned announce up even if chatter is off
     } else {
       this.scheduleAmbient();
     }
+  }
+
+  private isPinned(): boolean {
+    return performance.now() < this.pinnedUntil;
   }
 
   /** Event-driven line that interrupts the current bubble (grab/land/etc). */
@@ -82,8 +89,11 @@ export class SpeechController {
   announce(text: string): void {
     const line = text.trim();
     if (!line) return;
-    this.cooldownUntil = performance.now() + COOLDOWN_MS;
-    this.show(line, false, ANNOUNCE_SHOW_MS);
+    // Pin it: hold the bubble for a full minute and block anything else from
+    // replacing or hiding it until then (see say()/setEnabled()/hide()).
+    this.pinnedUntil = performance.now() + ANNOUNCE_PIN_MS;
+    this.cooldownUntil = this.pinnedUntil;
+    this.show(line, false, ANNOUNCE_PIN_MS);
   }
 
   private scheduleAmbient(): void {
@@ -97,6 +107,7 @@ export class SpeechController {
 
   private say(cat: DialogueCategory, priority: boolean): void {
     if (!this.enabled) return;
+    if (this.isPinned()) return; // a pinned announce is never overwritten, even by event lines
     const now = performance.now();
     if (!priority && (this.visible || now < this.cooldownUntil)) return;
 
@@ -140,6 +151,7 @@ export class SpeechController {
   private hide(): void {
     this.bubble.classList.remove('show');
     this.visible = false;
+    this.pinnedUntil = 0; // releasing the bubble also releases any pin
   }
 }
 

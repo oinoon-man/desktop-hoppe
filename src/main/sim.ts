@@ -212,7 +212,21 @@ export class PetSim {
   }
 
   private applyPosition(): void {
-    if (!this.win.isDestroyed()) this.win.setPosition(Math.round(this.x), Math.round(this.y));
+    if (this.win.isDestroyed()) return;
+    // Electron's native setPosition throws ("conversion failure from …") on any
+    // non-finite argument. A single NaN/Infinity from a physics edge (e.g. a
+    // display reconfiguration or resume-from-sleep mid-fall) must never crash the
+    // main process — repair to the floor and carry on instead.
+    if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) {
+      console.log('[sim] non-finite position repaired:', this.x, this.y);
+      const wa = this.workArea();
+      if (!Number.isFinite(this.x)) this.x = wa.x + wa.width - this.size - 48;
+      this.y = this.floorFeet() - this.size;
+      this.vx = 0;
+      this.vy = 0;
+      this.supportRect = null;
+    }
+    this.win.setPosition(Math.round(this.x), Math.round(this.y));
   }
 
   // --- click-through (grabbable-while-moving) ------------------------------

@@ -18,6 +18,12 @@ const PET_SIZE = 300;
 const DEBUG = process.argv.includes('--debug');
 const CLIMBTEST = process.argv.includes('--climbtest');
 
+// A desktop pet should never greet the user with a crash dialog. Log unexpected
+// main-process errors and keep running instead of letting Electron pop its
+// default "A JavaScript error occurred" box and tear the app down.
+process.on('uncaughtException', (err) => console.error('[main] uncaught exception:', err));
+process.on('unhandledRejection', (err) => console.error('[main] unhandled rejection:', err));
+
 interface Pet {
   window: BrowserWindow;
   sim: PetSim | null;
