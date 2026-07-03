@@ -378,6 +378,16 @@ export class PetSim {
         this.beginLand();
       }
     }
+
+    // Hard floor: the work-area bottom is an absolute lower bound. landingSurface
+    // only catches a surface the feet *cross* this tick, so if the pet was let go
+    // below the floor line moving down it would never land and sink off-screen.
+    // Snap it back up to the floor and settle instead.
+    if (this.mode === 'fall' && this.feetY() > this.floorFeet()) {
+      this.y = this.floorFeet() - this.size;
+      this.supportRect = null;
+      this.beginLand();
+    }
   }
 
   private tickWalk(dt: number, t: number): void {
