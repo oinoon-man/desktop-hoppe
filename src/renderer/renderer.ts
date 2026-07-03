@@ -63,9 +63,14 @@ petAPI?.onState((s) => {
   facing = s.facing;
   speech.setMode(mode);
   updateStateVisual();
-  if (cjActive) cj.setFacing(facing);
+  if (cjActive) {
+    cj.setFacing(facing);
+    // Re-apply on every message (not just on change): setClip is a no-op when the
+    // clip is already current, but it recovers an animator that drifted out of
+    // sync (e.g. stuck showing 'fall' while the pet has moved on to walk/idle).
+    cj.setClip(mode);
+  }
   if (mode !== prevMode) {
-    if (cjActive) cj.setClip(mode);
     if (mode === 'drag') speech.trigger('drag');
     else if (mode === 'land' && Math.random() < 0.4) speech.trigger('land');
     prevMode = mode;

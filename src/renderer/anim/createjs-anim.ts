@@ -37,6 +37,7 @@ export class CreateJSAnimator {
   private current: Mode | null = null;
   private pending: Mode = 'idle';
   private facing = 1;
+  private lastLandAt = 0; // debounce crouch restarts on rapid re-lands
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -158,18 +159,36 @@ export class CreateJSAnimator {
   }
 
   private show(mode: Mode): void {
-    const next = this.clips.get(mode);
-    if (!next || this.current === mode) return; // no art for this state -> keep current
+    if (this.current === mode) return;
+    // Never silently keep a stale clip (e.g. stay stuck on 'fall' while the pet is
+    // walking): if this state's art is missing, fall back to idle / any loaded
+    // motion rather than leaving the previous one on screen.
+    const have = this.clips.get(mode);
+    const next = have || this.clips.get('idle') || this.clips.values().next().value;
+    if (!next) return; // no motions loaded at all
     const prev = this.current ? this.clips.get(this.current) : null;
-    if (prev) prev.root.visible = false;
+    if (prev && prev !== next) prev.root.visible = false;
     next.root.visible = true;
     this.applyFacing(next.root, mode);
-    // `land` is a one-shot settle: play it once and hold the final frame so it
-    // doesn't visibly re-play while the sim holds the land state (most noticeable
-    // on short drops). Every other motion keeps its default looping — we must NOT
-    // touch their .loop, since explicitly setting it here stops them after one pass.
-    if (mode === 'land') next.root.loop = false;
-    if (typeof next.root.gotoAndPlay === 'function') next.root.gotoAndPlay(0);
+    // `land` is a one-shot settle: play once and hold the final (standing) frame.
+    // On a *rapid* re-land — a transient support miss re-enters land within a few
+    // ticks — DON'T restart from frame 0, or the crouch frame flashes again while
+    // the pet is already standing; just resume (holds the last frame). Genuine
+    // landings (seconds apart) still restart the full crouch→stand. Other motions
+    // keep their default looping — we must NOT touch their .loop.
+    if (mode === 'land' && have) {
+      next.root.loop = false;
+      const t = Date.now();
+      const rapid = t - this.lastLandAt < 350;
+      this.lastLandAt = t;
+      if (rapid) {
+        if (typeof next.root.play === 'function') next.root.play();
+      } else if (typeof next.root.gotoAndPlay === 'function') {
+        next.root.gotoAndPlay(0);
+      }
+    } else if (typeof next.root.gotoAndPlay === 'function') {
+      next.root.gotoAndPlay(0);
+    }
     this.current = mode;
   }
 

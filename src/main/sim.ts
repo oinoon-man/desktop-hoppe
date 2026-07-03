@@ -20,6 +20,13 @@ const WALL_BOUNCE = 0.4;
 const MAX_SPEED = 3200; // clamp throw velocity (px/s)
 const SUPPORT_SNAP = 16; // px tolerance for staying on / riding a shelf
 const LAND_MS = 500; // play the land motion and hold it 0.5s after a thrown pet touches down
+// Play the land (crouch) motion only on a real impact. Below this speed a
+// touchdown settles straight to idle, so a short drop / gentle placement / a
+// transient support-flicker re-land never flashes the crouch frame.
+const LAND_MIN_IMPACT = 950; // px/s
+// Safety net: a fall should never last this long on a real screen. If it does the
+// pet is stuck (e.g. skimming the floor line in the airborne pose) — force it down.
+const FALL_WATCHDOG_MS = 3000;
 const DWELL_MIN_MS = 1500;
 const DWELL_RAND_MS = 2500;
 // When an idle dwell ends, weighted choice: walk, nap, or keep idling.
@@ -73,6 +80,8 @@ export class PetSim {
   // land / sleep timing
   private landUntil = 0;
   private sleepUntil = 0;
+  private fellAt = 0; // when the current fall began (fall-watchdog)
+  private lastHeartbeat = 0; // last unconditional state re-send (renderer resync)
 
   // click-through state (main owns it so the pet is grabbable while moving).
   private ignore = true;
@@ -125,6 +134,21 @@ export class PetSim {
     this.debug = on;
   }
 
+  /** --mon2test: place the pet at a given screen x and hold it there (no wander). */
+  debugPlaceAt(x: number): void {
+    this.x = x;
+    this.y = this.floorFeet() - this.size;
+    this.vx = 0;
+    this.vy = 0;
+    this.supportRect = null;
+    this.setMode('idle');
+    this.dwellUntil = now() + 60000;
+    this.applyPosition();
+  }
+  getX(): number {
+    return this.x;
+  }
+
   /** Test helper: drop the pet from just above a shelf to verify climbing. */
   debugDropOnto(rect: Rect): void {
     this.x = rect.x + rect.w / 2 - this.size / 2;
@@ -154,7 +178,7 @@ export class PetSim {
     if (s && Math.abs(this.vy) < 220) {
       this.y = s.feet - this.size;
       this.supportRect = s.rect;
-      this.beginLand();
+      this.settleIdle(); // gently placed on a surface -> stand, no crouch
     } else {
       if (this.vx !== 0) this.setFacing(this.vx < 0 ? -1 : 1);
       this.setMode('fall');
@@ -172,16 +196,27 @@ export class PetSim {
   private centerX(): number {
     return this.x + this.size / 2;
   }
-  private floorFeet(): number {
-    const wa = this.workArea();
+  // Multi-monitor: the floor is the work-area bottom of the display the pet is
+  // currently over, so it can roam across extended monitors (each with its own
+  // taskbar). At a seam of differing height the pet steps up / down.
+  private floorFeetAt(cx: number): number {
+    const y = Number.isFinite(this.y) ? this.feetY() : this.workArea().y;
+    const wa = screen.getDisplayNearestPoint({ x: Math.round(cx), y: Math.round(y) }).workArea;
     return wa.y + wa.height;
   }
+  private floorFeet(): number {
+    return this.floorFeetAt(this.centerX());
+  }
+  // Horizontal roaming spans the union of every display (leftmost .. rightmost).
   private minX(): number {
-    return this.workArea().x;
+    let m = Infinity;
+    for (const d of screen.getAllDisplays()) m = Math.min(m, d.workArea.x);
+    return m;
   }
   private maxX(): number {
-    const wa = this.workArea();
-    return wa.x + wa.width - this.size;
+    let m = -Infinity;
+    for (const d of screen.getAllDisplays()) m = Math.max(m, d.workArea.x + d.workArea.width);
+    return m - this.size;
   }
 
   private spans(p: Rect, cx: number): boolean {
@@ -195,7 +230,7 @@ export class PetSim {
       if (feet >= fPrev - 1 && feet <= fNext && (!best || feet < best.feet)) best = { feet, rect };
     };
     for (const p of this.platforms) if (this.spans(p, cx)) consider(p.y, p);
-    consider(this.floorFeet(), null);
+    consider(this.floorFeetAt(cx), null);
     return best;
   }
 
@@ -207,7 +242,7 @@ export class PetSim {
       if (!best || Math.abs(f - feet) < Math.abs(best.feet - feet)) best = { feet: f, rect };
     };
     for (const p of this.platforms) if (this.spans(p, cx)) consider(p.y, p);
-    consider(this.floorFeet(), null);
+    consider(this.floorFeetAt(cx), null);
     return best;
   }
 
@@ -251,6 +286,7 @@ export class PetSim {
   private setMode(m: Mode): void {
     if (m === this.mode) return;
     this.mode = m;
+    if (m === 'fall') this.fellAt = now();
     this.send();
   }
   private setFacing(f: 1 | -1): void {
@@ -268,6 +304,17 @@ export class PetSim {
     this.vy = 0;
     this.landUntil = now() + LAND_MS;
     this.setMode('land');
+  }
+  /** Touchdown: crouch-land only on a real impact, else settle straight to idle. */
+  private touchDown(): void {
+    if (Math.abs(this.vy) >= LAND_MIN_IMPACT) this.beginLand();
+    else this.settleIdle();
+  }
+  private settleIdle(): void {
+    this.vx = 0;
+    this.vy = 0;
+    this.setMode('idle');
+    this.scheduleIdle(now());
   }
   private fallOff(carryVx: number): void {
     if (this.debug) console.log('[sim] fell off support');
@@ -294,6 +341,14 @@ export class PetSim {
         break;
       case 'fall':
         this.tickFall(dt);
+        if (this.mode === 'fall' && t - this.fellAt > FALL_WATCHDOG_MS) {
+          // Stuck falling far too long -> force it to the floor and settle.
+          this.y = this.floorFeet() - this.size;
+          this.vx = 0;
+          this.vy = 0;
+          this.supportRect = null;
+          this.settleIdle();
+        }
         break;
       case 'land':
         if (!this.rideSupport()) break; // fell (shelf vanished) -> now falling
@@ -318,6 +373,13 @@ export class PetSim {
     }
     this.applyPosition();
     this.updateClickThrough();
+    // Heartbeat: periodically re-push the current state even when nothing changed,
+    // so a renderer whose motion clip drifted out of sync (e.g. stuck on 'fall')
+    // gets a chance to re-apply the correct clip within ~1s.
+    if (t - this.lastHeartbeat > 1000) {
+      this.lastHeartbeat = t;
+      this.send();
+    }
   }
 
   /** Keep resting on (and follow) the current support; return false if it's gone. */
@@ -364,6 +426,10 @@ export class PetSim {
       this.setFacing(-1);
     }
 
+    // Keep facing aligned with real horizontal motion so the pet never renders
+    // facing backward relative to the way it's actually moving/sliding.
+    if (Math.abs(this.vx) > 30) this.setFacing(this.vx < 0 ? -1 : 1);
+
     if (this.vy > 0) {
       const s = this.landingSurface(this.centerX(), fPrev, this.feetY());
       if (s) {
@@ -375,18 +441,19 @@ export class PetSim {
           const r = s.rect;
           console.log('[sim] landed on', r ? `shelf @${r.x},${r.y} ${r.w}x${r.h}` : 'floor');
         }
-        this.beginLand();
+        this.touchDown();
       }
     }
 
     // Hard floor: the work-area bottom is an absolute lower bound. landingSurface
     // only catches a surface the feet *cross* this tick, so if the pet was let go
-    // below the floor line moving down it would never land and sink off-screen.
-    // Snap it back up to the floor and settle instead.
-    if (this.mode === 'fall' && this.feetY() > this.floorFeet()) {
+    // below the floor line — or ends a tick resting exactly on it with vy <= 0 —
+    // it would never land and would slide along in the airborne pose. `>=` (not
+    // `>`) also catches that at-the-floor edge. Snap up to the floor and settle.
+    if (this.mode === 'fall' && this.feetY() >= this.floorFeet()) {
       this.y = this.floorFeet() - this.size;
       this.supportRect = null;
-      this.beginLand();
+      this.touchDown();
     }
   }
 

@@ -18,6 +18,7 @@ import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } f
 const PET_SIZE = 300;
 const DEBUG = process.argv.includes('--debug');
 const CLIMBTEST = process.argv.includes('--climbtest');
+const MON2TEST = process.argv.includes('--mon2test');
 
 // A desktop pet should never greet the user with a crash dialog. Log unexpected
 // main-process errors and keep running instead of letting Electron pop its
@@ -194,7 +195,9 @@ function applySpeech(): void {
   for (const p of pets) if (!p.window.isDestroyed()) p.window.webContents.send('set-speech', settings.speech);
 }
 function applyAutostart(): void {
-  app.setLoginItemSettings({ openAtLogin: settings.autostart });
+  // Explicit path re-asserts one current Run entry (fixes stale paths from older
+  // installs and avoids duplicate autostart launches).
+  app.setLoginItemSettings({ openAtLogin: settings.autostart, path: process.execPath });
 }
 // "윈도우 맨 뒤로": when on, drop the always-on-top flag and push the window to
 // the bottom of the z-order so the pet sits behind other windows.
@@ -229,6 +232,30 @@ function setHidden(h: boolean): void {
     if (h) p.window.hide();
     else p.window.show();
   }
+}
+// Bring the pet back into view — used when a 2nd launch is attempted (or the user
+// thinks it closed): unhide and raise it to the top. Only a pet that is genuinely
+// off *every* screen is re-spawned; one that's simply on another monitor stays put
+// (so a relaunch never yanks it back to the primary display).
+function revealPets(): void {
+  setHidden(false);
+  const displays = screen.getAllDisplays();
+  pets.forEach((p, i) => {
+    if (p.window.isDestroyed()) return;
+    const b = p.window.getBounds();
+    const cx = b.x + b.width / 2;
+    const cy = b.y + b.height / 2;
+    const onScreen = displays.some(
+      (d) =>
+        cx >= d.bounds.x &&
+        cx < d.bounds.x + d.bounds.width &&
+        cy >= d.bounds.y &&
+        cy < d.bounds.y + d.bounds.height,
+    );
+    if (!onScreen) p.sim?.resetPosition(i);
+    p.window.showInactive();
+    p.window.moveTop();
+  });
 }
 
 // --- auto-update announce --------------------------------------------------
@@ -469,7 +496,15 @@ ipcMain.on('set-opacity', (_e, v: number) => {
 
 // --- lifecycle -------------------------------------------------------------
 
+// Single-instance lock: only ONE app runs at a time. A second launch (double-
+// click, autostart, updater relaunch…) exits immediately; the already-running
+// instance reveals its pet so the user can see it IS still running.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
+app.on('second-instance', () => revealPets());
+
 app.whenReady().then(() => {
+  if (!gotLock) return;
   settings = loadSettings();
   manifest = readJson<PetManifest>(path.join('assets', 'prototype', 'manifest.json'), { clips: {} });
   dialogue = loadDialogue(settings.locale);
@@ -486,6 +521,20 @@ app.whenReady().then(() => {
 
   createTray();
   for (let i = 0; i < settings.pets; i++) pets.push(createPet(i));
+
+  if (MON2TEST) {
+    setTimeout(() => {
+      const sim = pets[0]?.sim;
+      if (!sim) return;
+      sim.debugPlaceAt(-960); // center of a left-side monitor at x -1920..0
+      let n = 0;
+      const iv = setInterval(() => {
+        const b = pets[0].window.getBounds();
+        console.log(`[mon2test] pet x=${Math.round(sim.getX())} windowBounds.x=${b.x}`);
+        if (++n >= 6) clearInterval(iv);
+      }, 700);
+    }, 2500);
+  }
 
   // Auto-update: when a new version is downloaded, the pet announces it and the
   // tray gains a "지금 업데이트" item; it also installs silently on next quit.
