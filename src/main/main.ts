@@ -371,7 +371,7 @@ function rebuildTray(): void {
 function createTray(): void {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'tray.png'));
   tray = new Tray(icon);
-  tray.setToolTip('Hoppe');
+  tray.setToolTip('Desktop Butter');
   rebuildTray();
   tray.on('click', () => tray?.popUpContextMenu());
 }

@@ -9,6 +9,42 @@
 
 ---
 
+## 📥 다운로드 & 설치 · Download & Install · ダウンロード
+
+**➡️ [itch.io에서 다운로드 / Download on itch.io](https://oinoon-man.itch.io/hoppe)**
+<!-- 실제 itch.io 프로젝트 URL로 교체하세요 (프로필 사용자명/프로젝트 슬러그) -->
+
+**요구 사항 / Requirements:** Windows 10 / 11 (64-bit)
+
+### 🇰🇷 한국어
+1. 위 링크에서 **zip 파일**을 다운로드하고 압축을 풀어주세요.
+2. 폴더 안의 **`Hoppe.exe`** 를 실행하면 끝!
+3. 종료하려면 펫 우클릭 → 종료, 또는 `Ctrl+Shift+Q`.
+
+> ⚠️ 실행 시 **"Windows의 PC 보호"** 파란 경고창이 뜰 수 있어요.
+> 개인이 만든 서명되지 않은 앱이라 뜨는 정상적인 안내입니다.
+> **[추가 정보] → [실행]** 을 눌러주세요.
+
+### 🇯🇵 日本語
+1. 上のリンクから **zipファイル**をダウンロードして解凍してください。
+2. フォルダ内の **`Hoppe.exe`** を実行するだけ！
+3. 終了はペットを右クリック → 終了、または `Ctrl+Shift+Q`。
+
+> ⚠️ 実行時に **「WindowsによってPCが保護されました」** という青い警告が表示されることがあります。
+> 個人制作の署名なしアプリのため表示される正常な案内です。
+> **[詳細情報] → [実行]** を押してください。
+
+### 🇬🇧 English
+1. Download the **zip** from the link above and extract it.
+2. Run **`Hoppe.exe`** inside the folder — that's it!
+3. To quit, right-click the pet → Quit, or press `Ctrl+Shift+Q`.
+
+> ⚠️ Windows may show a blue **"Windows protected your PC"** warning.
+> This is normal for an unsigned app made by an individual.
+> Just click **[More info] → [Run anyway]**.
+
+---
+
 ## 기술 스택
 
 - **Electron** — 투명 / 최상단 / 클릭 통과 데스크탑 창

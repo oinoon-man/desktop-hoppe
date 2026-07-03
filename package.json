@@ -1,6 +1,6 @@
 {
   "name": "desktop-hoppe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Desktop pet (Trickcal Revive fan project, non-commercial) — free-roaming desktop companion with window interaction and random speech bubbles.",
   "main": "dist/main.js",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "com.hoppe.desktoppet",
-    "productName": "Hoppe",
+    "productName": "Desktop Butter",
     "directories": {
       "output": "release"
     },
@@ -34,10 +34,10 @@
       ]
     },
     "nsis": {
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "DesktopButter-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "DesktopButter-${version}.${ext}"
     },
     "publish": [
       {

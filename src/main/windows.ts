@@ -12,8 +12,9 @@ import koffi from 'koffi';
 const DWMWA_CLOAKED = 14;
 const MIN_W = 120;
 const MIN_H = 60;
-// Own pet windows are titled "Hoppe"; the desktop shell is "Program Manager".
-const SKIP_TITLES = new Set(['Hoppe', 'Program Manager']);
+// Own pet windows are titled "Desktop Butter"; the desktop shell is "Program
+// Manager". ("Hoppe" kept for older windows still open from a pre-rename build.)
+const SKIP_TITLES = new Set(['Desktop Butter', 'Hoppe', 'Program Manager']);
 
 let ready = false;
 let k: any = null;
