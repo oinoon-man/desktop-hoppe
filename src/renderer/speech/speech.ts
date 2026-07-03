@@ -40,6 +40,7 @@ export class SpeechController {
   private greeted = false;
   private cooldownUntil = 0;
   private pinnedUntil = 0; // announce bubble stays put until this time
+  private shownCat: DialogueCategory | null = null; // category of the visible bubble
   private showTimer = 0;
   private ambientTimer = 0;
   private lastLine: Partial<Record<DialogueCategory, string>> = {};
@@ -63,6 +64,9 @@ export class SpeechController {
 
   setMode(mode: Mode): void {
     this.mode = mode;
+    // Sleep lines (Zzz…) belong to the sleep state only: if the pet just left
+    // sleep while one is showing, drop it at once so it can't linger while awake.
+    if (mode !== 'sleep' && this.shownCat === 'sleep' && this.visible) this.hide();
   }
 
   setEnabled(on: boolean): void {
@@ -93,6 +97,7 @@ export class SpeechController {
     // replacing or hiding it until then (see say()/setEnabled()/hide()).
     this.pinnedUntil = performance.now() + ANNOUNCE_PIN_MS;
     this.cooldownUntil = this.pinnedUntil;
+    this.shownCat = null; // a notice, not a state line
     this.show(line, false, ANNOUNCE_PIN_MS);
   }
 
@@ -114,6 +119,7 @@ export class SpeechController {
     const line = this.nextFrom(cat);
     if (line === null) return;
     this.cooldownUntil = now + COOLDOWN_MS;
+    this.shownCat = cat;
     this.show(line.text, line.thought);
   }
 
@@ -152,6 +158,7 @@ export class SpeechController {
     this.bubble.classList.remove('show');
     this.visible = false;
     this.pinnedUntil = 0; // releasing the bubble also releases any pin
+    this.shownCat = null;
   }
 }
 

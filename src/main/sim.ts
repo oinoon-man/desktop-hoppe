@@ -24,9 +24,11 @@ const DWELL_MIN_MS = 1500;
 const DWELL_RAND_MS = 2500;
 // When an idle dwell ends, weighted choice: walk, nap, or keep idling.
 const WALK_CHANCE = 0.5;
-const SLEEP_CHANCE = 0.24;
-const SLEEP_MIN_MS = 9000;
-const SLEEP_RAND_MS = 8000;
+const SLEEP_CHANCE = 0.14; // naps are less frequent now
+// Once asleep, hold it 10–30s (random). Only user interaction (a grab) or the
+// shelf vanishing wakes the pet before then.
+const SLEEP_MIN_MS = 10000;
+const SLEEP_RAND_MS = 20000;
 
 // Grab region in window-local coords, as fractions of the window size (see
 // cursorOverPet). Approximates the character so it stays grabbable while moving.
