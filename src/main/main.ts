@@ -55,14 +55,12 @@ function readJson<T>(rel: string, fallback: T): T {
 }
 
 // --- dialogue --------------------------------------------------------------
-// The pool lives in userData/dialogue.json so it survives app updates and can be
-// edited directly. On first run it is seeded from the bundled default.
+// The pool ships with the app (assets/data/dialogue.json) and is read fresh on
+// every launch, so an app update always delivers the current lines. (It used to
+// be seeded once into userData and then kept, which froze updated installs on
+// whatever set they first launched with — the bundled lines never reached them.)
 
 const DIALOGUE_KEYS: DialogueCategory[] = ['greeting', 'idle', 'walk', 'sleep', 'drag', 'fall', 'land'];
-
-function userDialoguePath(): string {
-  return path.join(app.getPath('userData'), 'dialogue.json');
-}
 
 /** A line is either a plain string or `{ text, thought }`; keep the thought flag
  *  (속마음) if present. Returns null for empty/invalid entries. */
@@ -94,20 +92,7 @@ function sanitizeDialogue(raw: unknown): PetDialogue {
 }
 
 function loadDialogue(): PetDialogue {
-  try {
-    let text = fs.readFileSync(userDialoguePath(), 'utf-8');
-    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-    return sanitizeDialogue(JSON.parse(text));
-  } catch {
-    // First run: seed the user file from the bundled default.
-    const seeded = sanitizeDialogue(readJson<PetDialogue>(path.join('assets', 'data', 'dialogue.json'), {}));
-    try {
-      fs.writeFileSync(userDialoguePath(), JSON.stringify(seeded, null, 2));
-    } catch {
-      /* ignore */
-    }
-    return seeded;
-  }
+  return sanitizeDialogue(readJson<PetDialogue>(path.join('assets', 'data', 'dialogue.json'), {}));
 }
 
 // --- pets ------------------------------------------------------------------
