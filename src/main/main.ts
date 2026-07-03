@@ -145,6 +145,7 @@ function createPet(index: number): Pet {
     window.webContents.send('manifest', manifest);
     window.webContents.send('dialogue', dialogue);
     window.webContents.send('set-speech', settings.speech);
+    window.webContents.send('set-locale', settings.locale);
     if (isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     const sim = new PetSim(window, PET_SIZE);
@@ -353,7 +354,11 @@ function setLocale(loc: Locale): void {
   settings.locale = loc;
   saveSettings(settings);
   dialogue = loadDialogue(loc);
-  for (const p of pets) if (!p.window.isDestroyed()) p.window.webContents.send('dialogue', dialogue);
+  for (const p of pets) {
+    if (p.window.isDestroyed()) continue;
+    p.window.webContents.send('set-locale', loc);
+    p.window.webContents.send('dialogue', dialogue);
+  }
   if (creditsWindow && !creditsWindow.isDestroyed()) loadCredits(creditsWindow);
   if (opacityWindow && !opacityWindow.isDestroyed()) loadOpacity(opacityWindow);
   rebuildTray();

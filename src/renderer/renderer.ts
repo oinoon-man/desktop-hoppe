@@ -21,6 +21,7 @@ interface PetAPI {
   onDialogue: (cb: (d: PetDialogue) => void) => void;
   onSpeechEnabled: (cb: (enabled: boolean) => void) => void;
   onUpdateAnnounce: (cb: (line: string) => void) => void;
+  onLocale: (cb: (locale: string) => void) => void;
 }
 const petAPI: PetAPI | undefined = (window as unknown as { petAPI?: PetAPI }).petAPI;
 
@@ -52,6 +53,9 @@ let prevMode: Mode = 'idle';
 
 petAPI?.onManifest((m) => frames.load(m));
 petAPI?.onDialogue((d) => speech.load(d));
+// Switch the speech-bubble font to match the language (ja -> Mochiy Pop One via
+// the html[lang="ja"] rule in index.html).
+petAPI?.onLocale((loc) => (document.documentElement.lang = loc));
 petAPI?.onSpeechEnabled((on) => speech.setEnabled(on));
 petAPI?.onUpdateAnnounce((line) => speech.announce(line));
 petAPI?.onState((s) => {

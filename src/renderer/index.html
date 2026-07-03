@@ -17,8 +17,19 @@
           url("./assets/fonts/one-mobile-pop.ttf") format("truetype");
         font-display: swap;
       }
+      @font-face {
+        /* Mochiy Pop One (SIL OFL) — Japanese pop font, matches the ONE Mobile POP tone */
+        font-family: "HoppeJP";
+        src: url("./assets/fonts/mochiy-pop-one.ttf") format("truetype");
+        font-display: swap;
+      }
       :root {
+        /* ONE Mobile POP covers Korean + Latin (ko/en). */
         --ui-font: "HoppeUI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      }
+      /* Japanese: renderer.ts sets html[lang="ja"] when the pet's language is JA. */
+      html[lang="ja"] {
+        --ui-font: "HoppeJP", "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
       }
       html,
       body {

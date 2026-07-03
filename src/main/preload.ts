@@ -24,6 +24,9 @@ contextBridge.exposeInMainWorld('petAPI', {
   /** Pet announces an available update (one-off notice line). */
   onUpdateAnnounce: (cb: (line: string) => void) =>
     ipcRenderer.on('update-announce', (_e, line: string) => cb(line)),
+  /** Current UI language (so the renderer can pick the matching font). */
+  onLocale: (cb: (locale: string) => void) =>
+    ipcRenderer.on('set-locale', (_e, locale: string) => cb(locale)),
 });
 
 // Opacity slider window API.

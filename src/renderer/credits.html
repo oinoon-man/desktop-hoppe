@@ -9,8 +9,15 @@
         font-family: "HoppeUI";
         src: url("./assets/fonts/one-mobile-pop.woff") format("woff");
       }
+      @font-face {
+        font-family: "HoppeJP";
+        src: url("./assets/fonts/mochiy-pop-one.ttf") format("truetype");
+      }
       :root {
         --ui: "HoppeUI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      }
+      html[lang="ja"] {
+        --ui: "HoppeJP", "Yu Gothic", "Hiragino Sans", system-ui, sans-serif;
       }
       html,
       body {
