@@ -19,6 +19,10 @@ const PET_SIZE = 300;
 const DEBUG = process.argv.includes('--debug');
 const CLIMBTEST = process.argv.includes('--climbtest');
 const MON2TEST = process.argv.includes('--mon2test');
+// Silent updates: the new build is still downloaded and installed on the next
+// quit (electron-updater autoInstallOnAppQuit), but the pet never announces it
+// and the tray shows no "지금 업데이트" item — testers just get it automatically.
+const SILENT_UPDATES = true;
 
 // A desktop pet should never greet the user with a crash dialog. Log unexpected
 // main-process errors and keep running instead of letting Electron pop its
@@ -128,6 +132,7 @@ function createPet(index: number): Pet {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false, // never freeze the pet's animation when unfocused/occluded
     },
   });
 
@@ -147,7 +152,7 @@ function createPet(index: number): Pet {
     window.webContents.send('dialogue', dialogue);
     window.webContents.send('set-speech', settings.speech);
     window.webContents.send('set-locale', settings.locale);
-    if (isUpdateReady()) window.webContents.send('update-announce', announceLine());
+    if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     const sim = new PetSim(window, PET_SIZE);
     sim.start();
@@ -266,6 +271,7 @@ function announceLine(): string {
 }
 
 function announceUpdate(): void {
+  if (SILENT_UPDATES) return;
   for (const p of pets) {
     if (!p.window.isDestroyed()) p.window.webContents.send('update-announce', announceLine());
   }
@@ -275,7 +281,7 @@ function announceUpdate(): void {
 
 function buildTrayMenu(): Menu {
   const l = settings.locale;
-  const updateItems: Electron.MenuItemConstructorOptions[] = isUpdateReady()
+  const updateItems: Electron.MenuItemConstructorOptions[] = !SILENT_UPDATES && isUpdateReady()
     ? [
         { label: t(l, 'updateNow').replace('{v}', updateReadyVersion()), click: () => quitAndInstall() },
         { type: 'separator' },
@@ -499,6 +505,17 @@ ipcMain.on('set-opacity', (_e, v: number) => {
 // Single-instance lock: only ONE app runs at a time. A second launch (double-
 // click, autostart, updater relaunch…) exits immediately; the already-running
 // instance reveals its pet so the user can see it IS still running.
+// The pet must keep animating even when it isn't the focused/foreground window
+// (it never takes focus, and other windows constantly cover it). By default
+// Chromium throttles/pauses a backgrounded or occluded renderer's rAF + timers,
+// which freezes the CreateJS canvas on whatever frame it was on while the main
+// process keeps moving the pet and pushing state — the "stuck in the airborne
+// pose while sliding" bug. Disable every form of renderer backgrounding. Must be
+// set before app 'ready'. (Also set per-window via webPreferences.backgroundThrottling.)
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 app.on('second-instance', () => revealPets());

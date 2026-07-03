@@ -133,6 +133,7 @@ export class CreateJSAnimator {
       const c = this.clips.get(this.current);
       if (c) this.applyFacing(c.root, this.current);
     }
+    if (this.stage) this.stage.update(); // repaint now, don't wait for the next tick
   }
 
   // The art is authored facing LEFT, so the baseline is mirrored to make it face
@@ -190,6 +191,7 @@ export class CreateJSAnimator {
       next.root.gotoAndPlay(0);
     }
     this.current = mode;
+    if (this.stage) this.stage.update(); // repaint immediately so a throttled Ticker can't leave a stale frame
   }
 
   /** Show/hide the whole art (used when a placeholder covers a state instead). */
