@@ -76,13 +76,24 @@ if (capture(`gh release view ${tag} -R ${slug} --json tagName`)) {
 sh('node scripts/build.mjs');
 sh('npx electron-builder --win');
 
-// --- 3. collect artifacts (names come from build.nsis/portable artifactName) -
+// --- 3. collect artifacts --------------------------------------------------
+// Resolve the SAME filenames electron-builder wrote by expanding the
+// build.nsis/portable artifactName templates. Deriving them from productName
+// alone breaks when productName has a space or artifactName is overridden.
 const rel = join(root, 'release');
-const setup = join(rel, `${productName}-Setup-${version}.exe`);
+const fillName = (tpl, ext) =>
+  tpl
+    .replaceAll('${productName}', productName)
+    .replaceAll('${name}', pkg.name)
+    .replaceAll('${version}', version)
+    .replaceAll('${ext}', ext);
+const setupName = fillName(pkg.build?.nsis?.artifactName ?? '${productName}-Setup-${version}.${ext}', 'exe');
+const portableName = fillName(pkg.build?.portable?.artifactName ?? '${productName}-${version}.${ext}', 'exe');
+const setup = join(rel, setupName);
 const assets = [
   setup, // NSIS installer (the auto-update target)
   `${setup}.blockmap`, // delta-update block map
-  join(rel, `${productName}-${version}.exe`), // portable (bonus download)
+  join(rel, portableName), // portable (bonus download)
   join(rel, 'latest.yml'), // electron-updater manifest — MUST be on the release
 ];
 for (const a of assets) {
@@ -90,7 +101,7 @@ for (const a of assets) {
 }
 
 // --- 4. publish ------------------------------------------------------------
-const notes = `${productName} ${version} 릴리스. 설치본(${productName}-Setup-${version}.exe) 권장 · 포터블(${productName}-${version}.exe)도 제공. 설치본은 실행 중 자동 업데이트됩니다.`;
+const notes = `${productName} ${version} 릴리스. 설치본(${setupName}) 권장 · 포터블(${portableName})도 제공. 설치본은 실행 중 자동 업데이트됩니다.`;
 const assetArgs = assets.map((a) => `"${a}"`).join(' ');
 const ghCmd = `gh release create ${tag} ${assetArgs} -R ${slug} --target main --title "${productName} ${version}" --notes "${notes}" --latest`;
 
