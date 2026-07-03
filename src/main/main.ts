@@ -277,7 +277,7 @@ function buildTrayMenu(): Menu {
     click: () => setLocale(loc),
   }));
   return Menu.buildFromTemplate([
-    { label: 'Hoppe - The Desktop Butter', enabled: false },
+    { label: 'Desktop Butter', enabled: false },
     { type: 'separator' },
     ...updateItems,
     {
