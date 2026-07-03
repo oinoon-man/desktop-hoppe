@@ -1,4 +1,4 @@
-# Hoppe — Desktop Pet
+# Desktop Butter — Desktop Pet
 
 자유롭게 돌아다니고 창과 상호작용하는 데스크탑 펫. 랜덤 말풍선 대사 포함.
 
@@ -18,7 +18,7 @@
 
 ### 🇰🇷 한국어
 1. 위 링크에서 **zip 파일**을 다운로드하고 압축을 풀어주세요.
-2. 폴더 안의 **`Hoppe.exe`** 를 실행하면 끝!
+2. 폴더 안의 **`Desktop Butter.exe`** 를 실행하면 끝!
 3. 종료하려면 펫 우클릭 → 종료, 또는 `Ctrl+Shift+Q`.
 
 > ⚠️ 실행 시 **"Windows의 PC 보호"** 파란 경고창이 뜰 수 있어요.
@@ -27,7 +27,7 @@
 
 ### 🇯🇵 日本語
 1. 上のリンクから **zipファイル**をダウンロードして解凍してください。
-2. フォルダ内の **`Hoppe.exe`** を実行するだけ！
+2. フォルダ内の **`Desktop Butter.exe`** を実行するだけ！
 3. 終了はペットを右クリック → 終了、または `Ctrl+Shift+Q`。
 
 > ⚠️ 実行時に **「WindowsによってPCが保護されました」** という青い警告が表示されることがあります。
@@ -36,7 +36,7 @@
 
 ### 🇬🇧 English
 1. Download the **zip** from the link above and extract it.
-2. Run **`Hoppe.exe`** inside the folder — that's it!
+2. Run **`Desktop Butter.exe`** inside the folder — that's it!
 3. To quit, right-click the pet → Quit, or press `Ctrl+Shift+Q`.
 
 > ⚠️ Windows may show a blue **"Windows protected your PC"** warning.
@@ -59,7 +59,7 @@ npm start            # 빌드 후 실행
 npm run debug        # DevTools를 띄운 채 실행
 npm run dev          # 파일 변경 시 자동 리빌드 (watch)
 npm run typecheck    # 타입 검사만
-npm run pack         # 패키징 (release/win-unpacked/Hoppe.exe — 설치 없이 실행)
+npm run pack         # 패키징 (release/win-unpacked/Desktop Butter.exe — 설치 없이 실행)
 npm run dist:win     # 설치본(NSIS) + 포터블 빌드 (release/*.exe)
 ```
 
