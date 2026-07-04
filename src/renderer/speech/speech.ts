@@ -23,6 +23,9 @@ const SHOW_PER_CHAR_MS = 145;
 // overwrite or hide them while pinned.
 const ANNOUNCE_PIN_MS = 60000;
 const AMBIENT_MODES: ReadonlySet<Mode> = new Set(['idle', 'walk', 'sleep']);
+// Max characters per rendered line. Japanese has no spaces, so a long line has no
+// natural wrap point and would spill out of the bubble — wrap it ourselves.
+const BUBBLE_MAX_CHARS = 11;
 
 /** A dialogue line normalized to a common shape (see DialogueLine in types). */
 interface Line {
@@ -142,7 +145,7 @@ export class SpeechController {
   }
 
   private show(text: string, isThought = false, durationOverride = 0): void {
-    this.bubble.textContent = text;
+    this.bubble.textContent = wrapText(text);
     // 속마음 lines get the alternate bubble skin (colors/gradient in index.html).
     this.bubble.classList.toggle('thought', isThought);
     this.bubble.classList.add('show');
@@ -177,6 +180,39 @@ function normalize(data: PetDialogue): Partial<Record<DialogueCategory, Line[]>>
 function toLine(entry: DialogueLine): Line {
   if (typeof entry === 'string') return { text: entry, thought: false };
   return { text: entry.text, thought: entry.thought === true };
+}
+
+/**
+ * Wrap `text` so no rendered line exceeds `max` characters. Wraps on spaces where
+ * possible (Korean/English keep whole words) and hard-breaks a run with no spaces
+ * (Japanese) every `max` chars, so it can't overflow the bubble. Existing newlines
+ * are preserved. Counts by code point so surrogate-pair chars (emoji) aren't split.
+ */
+function wrapText(text: string, max = BUBBLE_MAX_CHARS): string {
+  const lines: string[] = [];
+  for (const para of text.split('\n')) {
+    let line: string[] = [];
+    const flush = (): void => {
+      if (line.length) lines.push(line.join(''));
+      line = [];
+    };
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      let w = [...word];
+      while (w.length > max) {
+        flush();
+        lines.push(w.slice(0, max).join(''));
+        w = w.slice(max);
+      }
+      if (line.length === 0) line = w;
+      else if (line.length + 1 + w.length <= max) line = [...line, ' ', ...w];
+      else {
+        flush();
+        line = w;
+      }
+    }
+    flush();
+  }
+  return lines.join('\n');
 }
 
 function shuffle<T>(arr: T[]): T[] {
