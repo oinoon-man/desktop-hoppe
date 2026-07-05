@@ -258,7 +258,12 @@ function applySize(): void {
   const s = scaledSize();
   for (const p of pets) {
     if (p.window.isDestroyed()) continue;
-    p.window.setSize(s, s); // renderer refits the art via its resize handler
+    // A resizable:false window locks its min/max to the current size, so setSize is
+    // ignored at runtime (the pet stayed the same size and only shifted). Briefly
+    // re-enable resizing so setSize takes; the renderer refits the art via 'resize'.
+    p.window.setResizable(true);
+    p.window.setSize(s, s);
+    p.window.setResizable(false);
     p.sim?.setSize(s);
   }
 }
