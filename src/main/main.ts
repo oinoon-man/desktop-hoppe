@@ -20,6 +20,7 @@ const DEBUG = process.argv.includes('--debug');
 const CLIMBTEST = process.argv.includes('--climbtest');
 const MON2TEST = process.argv.includes('--mon2test');
 const MEMLOG = process.argv.includes('--memlog'); // periodic per-process memory/CPU sampling
+const SEAMTEST = process.argv.includes('--seamtest'); // oscillate the pet across the monitor seam
 // Silent updates: the new build is still downloaded and installed on the next
 // quit (electron-updater autoInstallOnAppQuit), but the pet never announces it
 // and the tray shows no "지금 업데이트" item — testers just get it automatically.
@@ -133,7 +134,8 @@ function createPet(index: number): Pet {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      backgroundThrottling: false, // never freeze the pet's animation when unfocused/occluded
+      // backgroundThrottling left at its default (true): see the single-instance-lock
+      // note above — forcing it off caused the multi-monitor compositor RAM runaway.
     },
   });
 
@@ -509,17 +511,16 @@ ipcMain.on('set-opacity', (_e, v: number) => {
 // Single-instance lock: only ONE app runs at a time. A second launch (double-
 // click, autostart, updater relaunch…) exits immediately; the already-running
 // instance reveals its pet so the user can see it IS still running.
-// The pet must keep animating even when it isn't the focused/foreground window
-// (it never takes focus, and other windows constantly cover it). By default
-// Chromium throttles/pauses a backgrounded or occluded renderer's rAF + timers,
-// which freezes the CreateJS canvas on whatever frame it was on while the main
-// process keeps moving the pet and pushing state — the "stuck in the airborne
-// pose while sliding" bug. Disable every form of renderer backgrounding. Must be
-// set before app 'ready'. (Also set per-window via webPreferences.backgroundThrottling.)
-app.commandLine.appendSwitch('disable-background-timer-throttling');
-app.commandLine.appendSwitch('disable-renderer-backgrounding');
-app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
-
+//
+// NOTE: we intentionally do NOT disable Chromium's renderer backgrounding here.
+// 1.0.3 disabled it (+ webPreferences.backgroundThrottling:false) to stop the
+// unfocused/occluded "frozen pose" glitch, but that forced the transparent, always-
+// on-top window to composite continuously; on some GPU/driver/OS combos, rapidly
+// moving it across a monitor seam or through occlusion churned compositor surfaces
+// without bound → RAM ballooned to 10s of GB → renderer OOM-crash → respawn → repeat.
+// The frozen-pose glitch is instead mitigated cheaply by rendering on every state
+// change (stage.update in createjs-anim) plus a ~1s sim heartbeat, so throttling can
+// resume and the runaway can't happen.
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 app.on('second-instance', () => revealPets());
@@ -555,6 +556,10 @@ app.whenReady().then(() => {
         if (++n >= 6) clearInterval(iv);
       }, 700);
     }, 2500);
+  }
+
+  if (SEAMTEST) {
+    setTimeout(() => pets[0]?.sim?.startSeamTest(), 2500);
   }
 
   if (MEMLOG) {

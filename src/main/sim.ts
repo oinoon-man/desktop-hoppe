@@ -82,6 +82,8 @@ export class PetSim {
   private sleepUntil = 0;
   private fellAt = 0; // when the current fall began (fall-watchdog)
   private lastHeartbeat = 0; // last unconditional state re-send (renderer resync)
+  private debugSeam = false; // --seamtest: oscillate across the monitor seam
+  private debugSeamT = 0;
 
   // click-through state (main owns it so the pet is grabbable while moving).
   private ignore = true;
@@ -147,6 +149,10 @@ export class PetSim {
   }
   getX(): number {
     return this.x;
+  }
+  /** --seamtest: rapidly slide the window straddling the x=0 monitor seam. */
+  startSeamTest(): void {
+    this.debugSeam = true;
   }
 
   /** Test helper: drop the pet from just above a shelf to verify climbing. */
@@ -334,6 +340,14 @@ export class PetSim {
     let dt = (t - this.lastT) / 1000;
     this.lastT = t;
     if (dt > 0.05) dt = 0.05; // clamp hitches so physics stays stable
+
+    if (this.debugSeam) {
+      this.debugSeamT += 0.25;
+      this.x = Math.sin(this.debugSeamT) * 230 - 90; // window straddles/crosses x=0
+      this.y = this.floorFeet() - this.size;
+      this.applyPosition();
+      return;
+    }
 
     switch (this.mode) {
       case 'drag':
