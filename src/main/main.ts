@@ -148,6 +148,22 @@ function createPet(index: number): Pet {
   if (hidden) window.hide();
   window.webContents.on('console-message', (e) => console.log('[renderer]', e.message));
 
+  // A transparent, frameless window creeps larger every paint on fractional-DPI
+  // displays (125/150/175 %) — an Electron/Chromium bug. Unchecked, the window (and
+  // its canvas + the right-anchored bubble) grows without bound until it fills/leaves
+  // the screen and RAM balloons. Snap it back to the intended size whenever it drifts.
+  let enforcingSize = false;
+  window.on('resize', () => {
+    if (enforcingSize || window.isDestroyed()) return;
+    const want = scaledSize();
+    const [w, h] = window.getSize();
+    if (Math.abs(w - want) > 1 || Math.abs(h - want) > 1) {
+      enforcingSize = true;
+      window.setSize(want, want);
+      setTimeout(() => (enforcingSize = false), 0);
+    }
+  });
+
   const pet: Pet = { window, sim: null };
 
   window.webContents.on('did-finish-load', () => {
