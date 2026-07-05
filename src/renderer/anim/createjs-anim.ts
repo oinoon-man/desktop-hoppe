@@ -38,6 +38,7 @@ export class CreateJSAnimator {
   private pending: Mode = 'idle';
   private facing = 1;
   private lastLandAt = 0; // debounce crouch restarts on rapid re-lands
+  private renderPaused = false; // Ticker detached while the window is hidden
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -85,6 +86,23 @@ export class CreateJSAnimator {
         this.applyScale();
         cjs.Ticker.framerate = fps;
         cjs.Ticker.addEventListener('tick', this.stage);
+        // Stop compositing entirely while the window is hidden (tray "숨기기" /
+        // minimized): detach the stage from the Ticker so a hidden pet costs no
+        // GPU/CPU. This is unrelated to the unfocused-but-visible case (which must
+        // keep rendering to avoid the frozen-pose bug) — document.hidden is only
+        // true when the window is actually not shown.
+        document.addEventListener('visibilitychange', () => {
+          if (!this.ready || !this.stage) return;
+          const c: Any = (window as Any).createjs;
+          if (document.hidden && !this.renderPaused) {
+            c.Ticker.removeEventListener('tick', this.stage);
+            this.renderPaused = true;
+          } else if (!document.hidden && this.renderPaused) {
+            c.Ticker.addEventListener('tick', this.stage);
+            this.renderPaused = false;
+            this.stage.update();
+          }
+        });
         this.ready = true;
         this.show(this.pending);
         this.stage.update();

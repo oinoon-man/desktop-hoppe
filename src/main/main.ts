@@ -19,6 +19,7 @@ const PET_SIZE = 300;
 const DEBUG = process.argv.includes('--debug');
 const CLIMBTEST = process.argv.includes('--climbtest');
 const MON2TEST = process.argv.includes('--mon2test');
+const MEMLOG = process.argv.includes('--memlog'); // periodic per-process memory/CPU sampling
 // Silent updates: the new build is still downloaded and installed on the next
 // quit (electron-updater autoInstallOnAppQuit), but the pet never announces it
 // and the tray shows no "지금 업데이트" item — testers just get it automatically.
@@ -154,6 +155,9 @@ function createPet(index: number): Pet {
     window.webContents.send('set-locale', settings.locale);
     if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
+    // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
+    // previous sim so its interval doesn't keep running orphaned alongside the new one.
+    pet.sim?.stop();
     const sim = new PetSim(window, PET_SIZE);
     sim.start();
     sim.setPlatforms(settings.climbing ? enumerateShelves() : []);
@@ -552,6 +556,60 @@ app.whenReady().then(() => {
       }, 700);
     }, 2500);
   }
+
+  if (MEMLOG) {
+    const started = Date.now();
+    let base = 0;
+    const mb = (kb: number): string => (kb / 1024).toFixed(1);
+    const sample = (): void => {
+      const metrics = app.getAppMetrics();
+      let total = 0;
+      let cpu = 0;
+      const byType: Record<string, number> = {};
+      for (const p of metrics) {
+        total += p.memory.workingSetSize;
+        cpu += p.cpu?.percentCPUUsage ?? 0;
+        byType[p.type] = (byType[p.type] ?? 0) + p.memory.workingSetSize;
+      }
+      if (!base) base = total;
+      const t = Math.round((Date.now() - started) / 1000);
+      const parts = Object.entries(byType)
+        .map(([k, v]) => `${k}=${mb(v)}MB`)
+        .join(' ');
+      console.log(
+        `[mem] t=${t}s total=${mb(total)}MB (Δ${mb(total - base)}) cpu=${cpu.toFixed(0)}% procs=${metrics.length} | ${parts}`,
+      );
+    };
+    sample();
+    setInterval(sample, 15000);
+  }
+
+  // Memory watchdog: a pet renderer that has ballooned far past its normal working
+  // set (~140MB) indicates a runaway leak we couldn't reproduce in-house. Reclaim it
+  // by reloading just that renderer — a cause-agnostic hard cap on RAM growth. Only a
+  // genuine runaway trips this; the renderer re-inits in place (sim keeps position).
+  const RENDERER_RSS_LIMIT_KB = 700 * 1024;
+  setInterval(() => {
+    const byPid = new Map(app.getAppMetrics().map((m) => [m.pid, m.memory.workingSetSize]));
+    for (const p of pets) {
+      if (p.window.isDestroyed()) continue;
+      let pid = 0;
+      try {
+        pid = p.window.webContents.getOSProcessId();
+      } catch {
+        continue;
+      }
+      const rss = byPid.get(pid) ?? 0;
+      if (rss > RENDERER_RSS_LIMIT_KB) {
+        console.warn(`[mem] pet renderer pid=${pid} at ${Math.round(rss / 1024)}MB — reloading to reclaim`);
+        try {
+          p.window.webContents.reload();
+        } catch {
+          /* window went away */
+        }
+      }
+    }
+  }, 60000);
 
   // Auto-update: when a new version is downloaded, the pet announces it and the
   // tray gains a "지금 업데이트" item; it also installs silently on next quit.
