@@ -220,8 +220,12 @@ export class CreateJSAnimator {
   private applyScale(): void {
     if (!this.stage) return;
     const dpr = window.devicePixelRatio || 1;
-    this.stage.scaleX = dpr;
-    this.stage.scaleY = dpr;
+    // Fit the authored-size art (this.width, e.g. 300) into the current window,
+    // which the size setting resizes at runtime — so scaling the pet just resizes
+    // the window and the art follows.
+    const fit = (window.innerWidth || this.width) / this.width;
+    this.stage.scaleX = dpr * fit;
+    this.stage.scaleY = dpr * fit;
   }
 
   onResize(): void {

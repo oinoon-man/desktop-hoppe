@@ -30,6 +30,7 @@ const ctx = canvas.getContext('2d')!;
 
 let cssW = 0;
 let cssH = 0;
+const AUTHORED_SIZE = 300; // matches PET_SIZE; the size setting resizes the window from this
 function resize(): void {
   const dpr = window.devicePixelRatio || 1;
   cssW = window.innerWidth;
@@ -37,6 +38,9 @@ function resize(): void {
   canvas.width = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Keep the speech bubble anchored/sized to the pet as the size setting shrinks
+  // the window (== 1 at 100%). See #bubble's calc(... * var(--pscale)).
+  document.documentElement.style.setProperty('--pscale', String((cssW || AUTHORED_SIZE) / AUTHORED_SIZE));
 }
 resize();
 window.addEventListener('resize', resize);

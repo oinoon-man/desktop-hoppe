@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { PetSim } from './sim';
 import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from './windows';
-import { loadSettings, saveSettings, MAX_PETS, clampOpacity, type Settings } from './settings';
+import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Settings } from './settings';
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall } from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
@@ -114,11 +114,12 @@ function loadDialogue(locale: Locale): PetDialogue {
 
 function createPet(index: number): Pet {
   const wa = screen.getPrimaryDisplay().workArea;
+  const sz = scaledSize();
   const window = new BrowserWindow({
-    width: PET_SIZE,
-    height: PET_SIZE,
-    x: Math.max(wa.x, wa.x + wa.width - PET_SIZE - 40 - index * 90),
-    y: wa.y + wa.height - PET_SIZE - 40,
+    width: sz,
+    height: sz,
+    x: Math.max(wa.x, wa.x + wa.width - sz - 40 - index * 90),
+    y: wa.y + wa.height - sz - 40,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -160,9 +161,10 @@ function createPet(index: number): Pet {
     // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
     // previous sim so its interval doesn't keep running orphaned alongside the new one.
     pet.sim?.stop();
-    const sim = new PetSim(window, PET_SIZE);
+    const sim = new PetSim(window, scaledSize());
     sim.start();
     sim.setPlatforms(settings.climbing ? enumerateShelves() : []);
+    sim.setStay(settings.stay);
     pet.sim = sim;
   });
 
@@ -232,6 +234,21 @@ function effectiveOpacity(): number {
 function applyOpacity(): void {
   const o = effectiveOpacity();
   for (const p of pets) if (!p.window.isDestroyed()) p.window.setOpacity(o);
+}
+// Pet pixel size for the current scale setting (10/30/50/70/100 % of PET_SIZE).
+function scaledSize(): number {
+  return Math.max(1, Math.round((PET_SIZE * settings.size) / 100));
+}
+function applySize(): void {
+  const s = scaledSize();
+  for (const p of pets) {
+    if (p.window.isDestroyed()) continue;
+    p.window.setSize(s, s); // renderer refits the art via its resize handler
+    p.sim?.setSize(s);
+  }
+}
+function applyStay(): void {
+  for (const p of pets) p.sim?.setStay(settings.stay);
 }
 function resetPositions(): void {
   pets.forEach((p, i) => p.sim?.resetPosition(i));
@@ -355,7 +372,32 @@ function buildTrayMenu(): Menu {
     },
     { label: t(l, 'copies'), submenu: copiesSubmenu },
     { label: t(l, 'recall'), click: () => resetPositions() },
+    {
+      label: t(l, 'stay'),
+      type: 'checkbox',
+      checked: settings.stay,
+      click: () => {
+        settings.stay = !settings.stay;
+        saveSettings(settings);
+        applyStay();
+        rebuildTray();
+      },
+    },
     { label: t(l, 'opacity'), click: () => openOpacityWindow() },
+    {
+      label: t(l, 'size'),
+      submenu: SIZE_STEPS.map((s) => ({
+        label: `${s}%`,
+        type: 'radio',
+        checked: settings.size === s,
+        click: () => {
+          settings.size = s;
+          saveSettings(settings);
+          applySize();
+          rebuildTray();
+        },
+      })),
+    },
     { type: 'separator' },
     {
       label: t(l, 'autostart'),

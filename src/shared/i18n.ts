@@ -33,6 +33,8 @@ const UI = {
   behind: { ko: '윈도우 맨 뒤로', ja: 'ウィンドウの最背面へ', en: 'Send behind windows' },
   copies: { ko: '버터가 복사가 된다고', ja: 'バターが増えるって', en: 'Butter can multiply!' },
   recall: { ko: '실종된 애 불러오기', ja: '迷子を呼び戻す', en: 'Recall lost pet' },
+  stay: { ko: '기다려!', ja: '待て！', en: 'Stay!' },
+  size: { ko: '크기 조절', ja: 'サイズ調整', en: 'Adjust size' },
   opacity: { ko: '투명도 조절', ja: '透明度の調整', en: 'Adjust opacity' },
   opacityLabel: { ko: '투명도', ja: '透明度', en: 'Opacity' },
   autostart: { ko: '로그인 시 자동 실행', ja: 'ログイン時に自動起動', en: 'Launch at login' },

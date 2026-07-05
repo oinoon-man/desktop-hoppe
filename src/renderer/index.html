@@ -80,8 +80,10 @@
          (fill). Right/bottom anchored so the tail stays over the pet's head. */
       #bubble {
         position: absolute;
-        right: 96px;
-        bottom: 196px;
+        /* --pscale (set by the renderer = window/300) keeps the bubble anchored and
+           sized to the pet when the size setting shrinks the window; == 1 at 100%. */
+        right: calc(96px * var(--pscale, 1));
+        bottom: calc(196px * var(--pscale, 1));
         isolation: isolate;
         display: inline-flex;
         align-items: center;
@@ -101,7 +103,7 @@
         overflow-wrap: anywhere; /* last-resort break so text never spills the bubble */
         box-shadow: 0 4px 11px rgba(70, 85, 100, 0.2);
         opacity: 0;
-        transform: translateY(6px) scale(0.94);
+        transform: translateY(6px) scale(calc(0.94 * var(--pscale, 1)));
         transform-origin: 80% 120%;
         pointer-events: none;
         transition:
@@ -131,7 +133,7 @@
       }
       #bubble.show {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0) scale(var(--pscale, 1));
       }
 
       /* --- 속마음 (inner-thoughts) bubble variant ------------------------------

@@ -51,7 +51,8 @@ interface Support {
 
 export class PetSim {
   private readonly win: BrowserWindow;
-  private readonly size: number;
+  private size: number; // pet px (== window size); adjustable at runtime
+  private stay = false; // "기다려!": don't wander (stand/sleep only)
 
   private x = 0;
   private y = 0;
@@ -117,6 +118,26 @@ export class PetSim {
   /** Latest window shelves, in screen coords (from the Win32 watcher). */
   setPlatforms(rects: Rect[]): void {
     this.platforms = rects;
+  }
+
+  /** Resize the pet at runtime (main also resizes the window); keeps feet-center anchored. */
+  setSize(size: number): void {
+    if (size === this.size || !Number.isFinite(size) || size <= 0) return;
+    const cx = this.centerX();
+    const feet = this.feetY();
+    this.size = size;
+    this.x = cx - this.size / 2;
+    this.y = feet - this.size;
+    this.applyPosition();
+  }
+
+  /** "기다려!": seal autonomous wandering (stand/sleep only). Stops an in-progress walk. */
+  setStay(on: boolean): void {
+    this.stay = on;
+    if (on && this.mode === 'walk') {
+      this.setMode('idle');
+      this.scheduleIdle(now());
+    }
   }
 
   /** Re-place the pet at its spawn spot (for "실종된 애 불러오기"). */
@@ -495,7 +516,7 @@ export class PetSim {
     if (!this.rideSupport()) return;
     if (t < this.dwellUntil) return;
     const r = Math.random();
-    if (r < WALK_CHANCE) {
+    if (!this.stay && r < WALK_CHANCE) {
       this.walkTargetX = this.pickWalkTarget();
       this.setMode('walk');
     } else if (r < WALK_CHANCE + SLEEP_CHANCE) {
