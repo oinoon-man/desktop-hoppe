@@ -21,10 +21,9 @@ const CLIMBTEST = process.argv.includes('--climbtest');
 const MON2TEST = process.argv.includes('--mon2test');
 const MEMLOG = process.argv.includes('--memlog'); // periodic per-process memory/CPU sampling
 const SEAMTEST = process.argv.includes('--seamtest'); // oscillate the pet across the monitor seam
-// Silent updates: the new build is still downloaded and installed on the next
-// quit (electron-updater autoInstallOnAppQuit), but the pet never announces it
-// and the tray shows no "지금 업데이트" item — testers just get it automatically.
-const SILENT_UPDATES = true;
+// When true, updates download + install on quit silently (no pet announcement, no
+// tray "지금 업데이트" item). 1.0.4 ships new features, so we announce this one.
+const SILENT_UPDATES = false;
 
 // A desktop pet should never greet the user with a crash dialog. Log unexpected
 // main-process errors and keep running instead of letting Electron pop its
