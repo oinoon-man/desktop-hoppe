@@ -171,6 +171,7 @@ function createPet(index: number): Pet {
     window.webContents.send('dialogue', dialogue);
     window.webContents.send('set-speech', settings.speech);
     window.webContents.send('set-locale', settings.locale);
+    window.webContents.send('pet-size', scaledSize());
     if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
@@ -264,6 +265,7 @@ function applySize(): void {
     p.window.setResizable(true);
     p.window.setSize(s, s);
     p.window.setResizable(false);
+    p.window.webContents.send('pet-size', s); // renderer sizes the art from this, not the window
     p.sim?.setSize(s);
   }
 }

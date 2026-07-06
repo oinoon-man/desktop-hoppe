@@ -22,6 +22,7 @@ interface PetAPI {
   onSpeechEnabled: (cb: (enabled: boolean) => void) => void;
   onUpdateAnnounce: (cb: (line: string) => void) => void;
   onLocale: (cb: (locale: string) => void) => void;
+  onPetSize: (cb: (size: number) => void) => void;
 }
 const petAPI: PetAPI | undefined = (window as unknown as { petAPI?: PetAPI }).petAPI;
 
@@ -30,17 +31,23 @@ const ctx = canvas.getContext('2d')!;
 
 let cssW = 0;
 let cssH = 0;
-const AUTHORED_SIZE = 300; // matches PET_SIZE; the size setting resizes the window from this
+const AUTHORED_SIZE = 300; // matches PET_SIZE; the size setting scales from this
+// Authoritative pet size in px, pushed by main (onPetSize). We size the canvas and art
+// from THIS, never window.innerWidth: a transparent frameless window silently grows on
+// fractional-DPI displays (125/150/175 %), and deriving the scale from it made the pet
+// balloon off-screen ("거대화"). A fixed canvas size ignores that window drift.
+let petSize = AUTHORED_SIZE;
 function resize(): void {
   const dpr = window.devicePixelRatio || 1;
-  cssW = window.innerWidth;
-  cssH = window.innerHeight;
-  canvas.width = Math.round(cssW * dpr);
-  canvas.height = Math.round(cssH * dpr);
+  cssW = petSize;
+  cssH = petSize;
+  canvas.style.width = petSize + 'px'; // fixed CSS size — a grown window can't stretch it
+  canvas.style.height = petSize + 'px';
+  canvas.width = Math.round(petSize * dpr);
+  canvas.height = Math.round(petSize * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Keep the speech bubble anchored/sized to the pet as the size setting shrinks
-  // the window (== 1 at 100%). See #bubble's calc(... * var(--pscale)).
-  document.documentElement.style.setProperty('--pscale', String((cssW || AUTHORED_SIZE) / AUTHORED_SIZE));
+  // Keep the speech bubble anchored/sized to the pet (== 1 at 100%). See #bubble's calc().
+  document.documentElement.style.setProperty('--pscale', String(petSize / AUTHORED_SIZE));
 }
 resize();
 window.addEventListener('resize', resize);
@@ -62,6 +69,14 @@ petAPI?.onDialogue((d) => speech.load(d));
 petAPI?.onLocale((loc) => (document.documentElement.lang = loc));
 petAPI?.onSpeechEnabled((on) => speech.setEnabled(on));
 petAPI?.onUpdateAnnounce((line) => speech.announce(line));
+petAPI?.onPetSize((n) => {
+  petSize = n > 0 ? n : AUTHORED_SIZE;
+  resize();
+  if (cjActive) {
+    cj.setPetSize(petSize);
+    cj.onResize();
+  }
+});
 petAPI?.onState((s) => {
   mode = s.mode;
   facing = s.facing;
@@ -93,6 +108,8 @@ let cjActive = false;
 cj.init().then((ready) => {
   cjActive = ready;
   if (ready) {
+    cj.setPetSize(petSize); // apply any size received before init resolved
+    cj.onResize();
     cj.setFacing(facing);
     cj.setClip(mode);
     updateStateVisual();

@@ -39,6 +39,7 @@ export class CreateJSAnimator {
   private facing = 1;
   private lastLandAt = 0; // debounce crouch restarts on rapid re-lands
   private renderPaused = false; // Ticker detached while the window is hidden
+  private petSize = 0; // intended pet px from main; scale the art from this, not the window
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -217,13 +218,19 @@ export class CreateJSAnimator {
     if (this.container) this.container.visible = on;
   }
 
+  /** Intended pet size in px (from main) — the art scales from this, never the
+   *  window, which drifts/grows on fractional-DPI displays. */
+  setPetSize(size: number): void {
+    this.petSize = size > 0 ? size : this.width;
+  }
+
   private applyScale(): void {
     if (!this.stage) return;
     const dpr = window.devicePixelRatio || 1;
-    // Fit the authored-size art (this.width, e.g. 300) into the current window,
-    // which the size setting resizes at runtime — so scaling the pet just resizes
-    // the window and the art follows.
-    const fit = (window.innerWidth || this.width) / this.width;
+    // Fit the authored-size art (this.width, e.g. 300) into the INTENDED pet size,
+    // not window.innerWidth: a fractional-DPI window silently grows, and scaling off
+    // it ballooned the pet off-screen. petSize is authoritative (main pushes it).
+    const fit = (this.petSize || this.width) / this.width;
     this.stage.scaleX = dpr * fit;
     this.stage.scaleY = dpr * fit;
   }

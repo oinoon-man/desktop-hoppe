@@ -27,6 +27,10 @@ contextBridge.exposeInMainWorld('petAPI', {
   /** Current UI language (so the renderer can pick the matching font). */
   onLocale: (cb: (locale: string) => void) =>
     ipcRenderer.on('set-locale', (_e, locale: string) => cb(locale)),
+  /** Intended pet size in px (authoritative — the renderer sizes the canvas + art
+   *  from this, NOT the window, which can drift/grow on fractional-DPI displays). */
+  onPetSize: (cb: (size: number) => void) =>
+    ipcRenderer.on('pet-size', (_e, size: number) => cb(size)),
 });
 
 // Opacity slider window API.
