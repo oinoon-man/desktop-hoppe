@@ -7,10 +7,15 @@ name: Release
 #
 # Flow: bump "version" in package.json → commit & push → `git tag vX.Y.Z && git push --tags`.
 # (Use THIS instead of `npm run release` for multi-platform; don't run both for one tag.)
+#
+# workflow_dispatch (Actions tab → Run workflow, or `gh workflow run release.yml`):
+# builds all three platforms but does NOT publish a release — the installers are attached
+# to the run as downloadable artifacts. Handy for test builds without cutting a release.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -50,6 +55,7 @@ jobs:
   publish:
     name: Publish GitHub release
     needs: build
+    if: startsWith(github.ref, 'refs/tags/v') # only tag pushes publish; dispatch = test build
     runs-on: ubuntu-latest
     permissions:
       contents: write # allow gh release create to write to this repo
