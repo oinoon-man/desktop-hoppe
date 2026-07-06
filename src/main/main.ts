@@ -113,7 +113,10 @@ function loadDialogue(locale: Locale): PetDialogue {
 
 function createPet(index: number): Pet {
   const wa = screen.getPrimaryDisplay().workArea;
-  const sz = scaledSize();
+  // The window stays PET_SIZE regardless of the size setting: it must hold the speech
+  // bubble (which never shrinks below readable), and the pet art is scaled+placed inside
+  // it (renderer). A small window would clip the bubble into a 1-char vertical sliver.
+  const sz = PET_SIZE;
   const window = new BrowserWindow({
     width: sz,
     height: sz,
@@ -154,7 +157,7 @@ function createPet(index: number): Pet {
   let enforcingSize = false;
   window.on('resize', () => {
     if (enforcingSize || window.isDestroyed()) return;
-    const want = scaledSize();
+    const want = PET_SIZE; // the pet window is always PET_SIZE (the art scales inside)
     const [w, h] = window.getSize();
     if (Math.abs(w - want) > 1 || Math.abs(h - want) > 1) {
       enforcingSize = true;
@@ -177,7 +180,7 @@ function createPet(index: number): Pet {
     // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
     // previous sim so its interval doesn't keep running orphaned alongside the new one.
     pet.sim?.stop();
-    const sim = new PetSim(window, scaledSize());
+    const sim = new PetSim(window, PET_SIZE); // window is always PET_SIZE; the art scales inside it
     sim.start();
     sim.setPlatforms(settings.climbing ? enumerateShelves() : []);
     sim.setStay(settings.stay);
@@ -257,16 +260,10 @@ function scaledSize(): number {
 }
 function applySize(): void {
   const s = scaledSize();
+  // The window stays PET_SIZE; only the art inside scales. Just push the intended art
+  // size to the renderer — no window resize, no sim size change (feet/grab stay put).
   for (const p of pets) {
-    if (p.window.isDestroyed()) continue;
-    // A resizable:false window locks its min/max to the current size, so setSize is
-    // ignored at runtime (the pet stayed the same size and only shifted). Briefly
-    // re-enable resizing so setSize takes; the renderer refits the art via 'resize'.
-    p.window.setResizable(true);
-    p.window.setSize(s, s);
-    p.window.setResizable(false);
-    p.window.webContents.send('pet-size', s); // renderer sizes the art from this, not the window
-    p.sim?.setSize(s);
+    if (!p.window.isDestroyed()) p.window.webContents.send('pet-size', s);
   }
 }
 function applyStay(): void {

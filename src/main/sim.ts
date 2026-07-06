@@ -120,17 +120,6 @@ export class PetSim {
     this.platforms = rects;
   }
 
-  /** Resize the pet at runtime (main also resizes the window); keeps feet-center anchored. */
-  setSize(size: number): void {
-    if (size === this.size || !Number.isFinite(size) || size <= 0) return;
-    const cx = this.centerX();
-    const feet = this.feetY();
-    this.size = size;
-    this.x = cx - this.size / 2;
-    this.y = feet - this.size;
-    this.applyPosition();
-  }
-
   /** "기다려!": seal autonomous wandering (stand/sleep only). Stops an in-progress walk. */
   setStay(on: boolean): void {
     this.stay = on;
