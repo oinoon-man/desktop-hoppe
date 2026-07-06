@@ -39,6 +39,21 @@
     "portable": {
       "artifactName": "DesktopButter-${version}.${ext}"
     },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.entertainment",
+      "artifactName": "DesktopButter-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "artifactName": "DesktopButter-${version}.${ext}"
+    },
     "publish": [
       {
         "provider": "github",

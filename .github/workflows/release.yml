@@ -1,0 +1,72 @@
+name: Release
+
+# Push a version tag (e.g. v1.0.8) → builds Windows + macOS + Linux in parallel and
+# publishes them all to ONE GitHub release. Each installed app auto-updates from its
+# own manifest in that release (latest.yml / latest-mac.yml / latest-linux.yml), so a
+# single version bump + tag covers every platform — no per-platform release needed.
+#
+# Flow: bump "version" in package.json → commit & push → `git tag vX.Y.Z && git push --tags`.
+# (Use THIS instead of `npm run release` for multi-platform; don't run both for one tag.)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # one platform failing shouldn't discard the others' builds
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build # esbuild bundle + copy assets → dist/
+      - name: Package with electron-builder
+        run: npx electron-builder --publish never # builds this OS's targets + its latest*.yml
+        env:
+          # No Apple certificate on CI yet: skip macOS signing so the build still
+          # produces (unsigned) .dmg/.zip. macOS AUTO-UPDATE needs signing + notarization,
+          # which we add once an Apple Developer account is available.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.blockmap
+            release/latest*.yml
+          if-no-files-found: ignore
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # allow gh release create to write to this repo
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so --generate-notes can build the changelog
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true # merge all dist-<os> artifacts into one folder
+      - name: Create the release with every platform's artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            -R "$GITHUB_REPOSITORY" \
+            --title "Desktop Butter ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            --latest
