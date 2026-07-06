@@ -109,7 +109,10 @@
         overflow-wrap: anywhere; /* last-resort break so text never spills the bubble */
         box-shadow: 0 4px 11px rgba(70, 85, 100, 0.2);
         opacity: 0;
-        transform: translateX(-100%) translateY(6px) scale(0.94);
+        /* scale(--pscale) shrinks the whole bubble (font + frame) with the pet. The text
+           still LAYS OUT in the full-size (300px) window first, so it wraps normally and
+           only then shrinks — no 1-char vertical collapse. Origin ~tail (over the head). */
+        transform: translateX(-100%) translateY(6px) scale(calc(0.94 * var(--pscale, 1)));
         transform-origin: 80% 120%;
         pointer-events: none;
         transition:
@@ -139,7 +142,7 @@
       }
       #bubble.show {
         opacity: 1;
-        transform: translateX(-100%) translateY(0) scale(1);
+        transform: translateX(-100%) translateY(0) scale(var(--pscale, 1));
       }
 
       /* --- 속마음 (inner-thoughts) bubble variant ------------------------------
