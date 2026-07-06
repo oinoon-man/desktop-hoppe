@@ -48,6 +48,9 @@ let manifest: PetManifest = { clips: {} };
 let dialogue: PetDialogue = {};
 let climbingAvailable = false;
 let climbtestDropped = false;
+// setLoginItemSettings is macOS/Windows only; Linux autostart would need a
+// ~/.config/autostart/*.desktop file, so we skip it (and disable the tray toggle).
+const autostartSupported = process.platform === 'darwin' || process.platform === 'win32';
 
 function readJson<T>(rel: string, fallback: T): T {
   try {
@@ -227,6 +230,7 @@ function applySpeech(): void {
   for (const p of pets) if (!p.window.isDestroyed()) p.window.webContents.send('set-speech', settings.speech);
 }
 function applyAutostart(): void {
+  if (!autostartSupported) return; // no-op on Linux
   // Explicit path re-asserts one current Run entry (fixes stale paths from older
   // installs and avoids duplicate autostart launches).
   app.setLoginItemSettings({ openAtLogin: settings.autostart, path: process.execPath });
@@ -421,7 +425,8 @@ function buildTrayMenu(): Menu {
     {
       label: t(l, 'autostart'),
       type: 'checkbox',
-      checked: settings.autostart,
+      checked: settings.autostart && autostartSupported,
+      enabled: autostartSupported, // Linux has no supported login-item API
       click: () => {
         settings.autostart = !settings.autostart;
         saveSettings(settings);
