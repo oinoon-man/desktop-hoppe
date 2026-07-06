@@ -22,7 +22,7 @@ const MON2TEST = process.argv.includes('--mon2test');
 const MEMLOG = process.argv.includes('--memlog'); // periodic per-process memory/CPU sampling
 const SEAMTEST = process.argv.includes('--seamtest'); // oscillate the pet across the monitor seam
 // When true, updates download + install on quit silently (no pet announcement, no
-// tray "지금 업데이트" item). 1.0.6 fixes a critical high-DPI bug, so announce it.
+// tray "지금 업데이트" item). 1.0.7 improves the size feature, so announce it.
 const SILENT_UPDATES = false;
 
 // A desktop pet should never greet the user with a crash dialog. Log unexpected
