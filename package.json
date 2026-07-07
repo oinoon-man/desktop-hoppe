@@ -57,7 +57,8 @@
         }
       ],
       "category": "public.app-category.entertainment",
-      "artifactName": "DesktopButter-${version}-${arch}.${ext}"
+      "artifactName": "DesktopButter-${version}-${arch}.${ext}",
+      "identity": null
     },
     "linux": {
       "target": [

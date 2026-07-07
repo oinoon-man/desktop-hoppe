@@ -34,12 +34,11 @@ jobs:
       - run: npm ci
       - run: npm run build # esbuild bundle + copy assets → dist/
       - name: Package with electron-builder
+        # macOS build is ad-hoc signed (build.mac.identity=null) so it isn't flagged as
+        # "damaged" on Apple Silicon; first launch still needs the user to allow it
+        # (right-click → Open / Settings → Open Anyway). Real Developer-ID signing +
+        # notarization (for a clean launch + mac auto-update) comes with an Apple account.
         run: npx electron-builder --publish never # builds this OS's targets + its latest*.yml
-        env:
-          # No Apple certificate on CI yet: skip macOS signing so the build still
-          # produces (unsigned) .dmg/.zip. macOS AUTO-UPDATE needs signing + notarization,
-          # which we add once an Apple Developer account is available.
-          CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os }}
