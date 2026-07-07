@@ -27,6 +27,7 @@
     "asarUnpack": [
       "**/node_modules/koffi/**"
     ],
+    "afterPack": "scripts/afterPack.cjs",
     "win": {
       "target": [
         "nsis",
