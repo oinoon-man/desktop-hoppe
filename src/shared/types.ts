@@ -4,6 +4,27 @@
 /** High-level animation/behavior state of the pet. */
 export type Mode = 'idle' | 'walk' | 'drag' | 'fall' | 'land' | 'sleep';
 
+/** Selectable pet character. Each ships its own published Adobe Animate motion set
+ *  (the same six motions: standing/run/grab/fall/land/sleep) in its own folder. */
+export type CharacterId = 'butter' | 'komi';
+
+export interface CharacterDef {
+  id: CharacterId;
+  /** Folder under assets/animate/ holding this character's 6 motion comps + images. */
+  motionsDir: string;
+  /** Display name for menus. */
+  name: string;
+}
+
+export const CHARACTERS: Record<CharacterId, CharacterDef> = {
+  butter: { id: 'butter', motionsDir: 'motions', name: 'Butter' },
+  komi: { id: 'komi', motionsDir: 'motions-komi', name: 'Komi' },
+};
+
+export function isCharacterId(v: unknown): v is CharacterId {
+  return v === 'butter' || v === 'komi';
+}
+
 /** One itch.io devlog entry (in-app patch notes list). */
 export interface DevlogItem {
   title: string;

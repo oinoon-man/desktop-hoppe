@@ -8,6 +8,7 @@ import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Se
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall, setUpdateChannel } from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
+import { isCharacterId, type CharacterId } from '../shared/types';
 
 // ---------------------------------------------------------------------------
 // Main process
@@ -23,6 +24,7 @@ const MON2TEST = process.argv.includes('--mon2test');
 const MEMLOG = process.argv.includes('--memlog'); // periodic per-process memory/CPU sampling
 const SEAMTEST = process.argv.includes('--seamtest'); // oscillate the pet across the monitor seam
 const GEOMTEST = process.argv.includes('--geomtest'); // log window/content/pet/bubble geometry over time
+const CHAR_OVERRIDE = process.argv.find((a) => a.startsWith('--char='))?.slice('--char='.length); // dev: force a character
 // When true, updates download + install on quit silently (no pet announcement, no
 // tray "지금 업데이트" item). 1.0.7 improves the size feature, so announce it.
 const SILENT_UPDATES = false;
@@ -199,7 +201,7 @@ function createPet(index: number): Pet {
     pet.sim = null;
   });
 
-  void window.loadFile(path.join(__dirname, 'index.html'));
+  void window.loadFile(path.join(__dirname, 'index.html'), { query: { char: petCharacter() } });
   return pet;
 }
 
@@ -254,6 +256,11 @@ function applyBehind(): void {
 }
 // The slider shows 1–100, but the applied opacity is floored at 10% so the pet
 // never becomes fully invisible (that is what 숨기기 is for).
+// Which character new pet windows show: the --char dev override, else the setting.
+function petCharacter(): CharacterId {
+  const c = CHAR_OVERRIDE ?? settings.character;
+  return isCharacterId(c) ? c : 'butter';
+}
 function effectiveOpacity(): number {
   return Math.max(10, settings.opacity) / 100;
 }

@@ -196,13 +196,9 @@
     <div id="placeholder"></div>
     <div id="bubble"></div>
     <script src="./assets/vendor/createjs.min.js"></script>
-    <!-- One published Adobe Animate (CreateJS) composition per motion. -->
-    <script src="./assets/animate/motions/standing.js"></script>
-    <script src="./assets/animate/motions/run.js"></script>
-    <script src="./assets/animate/motions/grab.js"></script>
-    <script src="./assets/animate/motions/fall.js"></script>
-    <script src="./assets/animate/motions/land.js"></script>
-    <script src="./assets/animate/motions/sleep.js"></script>
+    <!-- The six Adobe Animate (CreateJS) motion compositions are loaded dynamically by
+         renderer.js from the selected character's folder (assets/animate/<dir>/), so the
+         window can show Butter or Komi (or a future character) from the same page. -->
     <script src="./renderer.js"></script>
   </body>
 </html>

@@ -6,6 +6,7 @@
 // while it walks or falls. Position/physics live in main.
 // ---------------------------------------------------------------------------
 import type { Mode, PetState, PetManifest, PetDialogue } from '../shared/types';
+import { CHARACTERS, isCharacterId } from '../shared/types';
 import type { IAnimator } from './anim/types';
 import { PlaceholderAnimator } from './anim/placeholder';
 import { FrameAnimator } from './anim/frame';
@@ -100,23 +101,50 @@ function animatorFor(clip: Mode): IAnimator {
   return frames.hasClip(clip) ? frames : placeholder;
 }
 
+// Which character this window shows (main passes ?char= on the URL). Each character's six
+// motion comps live in their own assets/animate/<dir>/ folder; load them dynamically
+// (index.html no longer hard-codes one character) and init the animator from that folder.
+const charParam = new URLSearchParams(location.search).get('char');
+const character = CHARACTERS[isCharacterId(charParam) ? charParam : 'butter'];
+const charBase = `./assets/animate/${character.motionsDir}/`;
+
+function loadMotionScripts(base: string): Promise<void> {
+  // Sequentially — each registers into the shared createjs / AdobeAn globals.
+  return ['standing', 'run', 'grab', 'fall', 'land', 'sleep'].reduce(
+    (chain, m) =>
+      chain.then(
+        () =>
+          new Promise<void>((resolve) => {
+            const s = document.createElement('script');
+            s.src = `${base}${m}.js`;
+            s.onload = () => resolve();
+            s.onerror = () => resolve(); // a missing motion shouldn't block the others
+            document.head.appendChild(s);
+          }),
+      ),
+    Promise.resolve(),
+  );
+}
+
 // Prefer the Adobe Animate / CreateJS art when a published composition is present;
 // otherwise fall back to the frame/placeholder canvas loop.
 const cj = new CreateJSAnimator(canvas);
 let cjActive = false;
 
-cj.init().then((ready) => {
-  cjActive = ready;
-  if (ready) {
-    cj.setPetSize(petSize); // apply any size received before init resolved
-    cj.onResize();
-    cj.setFacing(facing);
-    cj.setClip(mode);
-    updateStateVisual();
-  } else {
-    startCanvasLoop();
-  }
-});
+loadMotionScripts(charBase)
+  .then(() => cj.init(charBase))
+  .then((ready) => {
+    cjActive = ready;
+    if (ready) {
+      cj.setPetSize(petSize); // apply any size received before init resolved
+      cj.onResize();
+      cj.setFacing(facing);
+      cj.setClip(mode);
+      updateStateVisual();
+    } else {
+      startCanvasLoop();
+    }
+  });
 
 // With the real Animate art loaded, every state is a published motion, so the
 // art just renders/loops for whatever mode is current. Without it, the canvas

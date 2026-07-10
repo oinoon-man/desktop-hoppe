@@ -2,6 +2,7 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { isLocale, type Locale } from '../shared/i18n';
+import { isCharacterId, type CharacterId } from '../shared/types';
 
 // Persisted user settings (userData/settings.json). Small and forgiving: unknown,
 // BOM-prefixed, or corrupt files fall back to defaults.
@@ -17,6 +18,7 @@ export interface Settings {
   stay: boolean; // "기다려!" — seal wandering (stand/sleep only), interaction still ok
   beta: boolean; // opt in to the beta update channel (test builds before they go live)
   locale: Locale; // UI + dialogue language (ko/ja/en)
+  character: CharacterId; // which pet character to show (butter/komi)
 }
 
 export const MAX_PETS = 5;
@@ -32,6 +34,7 @@ const DEFAULTS: Settings = {
   stay: false,
   beta: false,
   locale: 'ko',
+  character: 'butter',
 };
 
 function file(): string {
@@ -76,6 +79,7 @@ export function loadSettings(): Settings {
       stay: typeof raw.stay === 'boolean' ? raw.stay : DEFAULTS.stay,
       beta: typeof raw.beta === 'boolean' ? raw.beta : DEFAULTS.beta,
       locale: isLocale(raw.locale) ? raw.locale : DEFAULTS.locale,
+      character: isCharacterId(raw.character) ? raw.character : DEFAULTS.character,
     };
   } catch {
     return { ...DEFAULTS };
