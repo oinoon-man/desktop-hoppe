@@ -131,6 +131,25 @@ window.addEventListener('resize', () => {
   if (cjActive) cj.onResize();
 });
 
+// Moving onto a monitor with a different scale factor changes devicePixelRatio, which
+// resizes the canvas backing (resize()) and must re-scale the CreateJS stage (onResize) —
+// otherwise the art keeps the previous monitor's scale and appears to balloon in that
+// "구역" (the 특정 구역 거대화 report). Chromium does NOT reliably fire 'resize' for a
+// DPI-only change of a fixed-DIP window, so watch devicePixelRatio explicitly: a
+// media query on the current resolution fires exactly when it changes.
+let dprQuery: MediaQueryList | null = null;
+function onDprChange(): void {
+  resize(); // canvas backing (petSize * new dpr) + --pscale
+  if (cjActive) cj.onResize(); // CreateJS stage scale (new dpr * fit)
+  watchDpr(); // re-arm for the new DPR
+}
+function watchDpr(): void {
+  dprQuery?.removeEventListener('change', onDprChange);
+  dprQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+  dprQuery.addEventListener('change', onDprChange);
+}
+watchDpr();
+
 function startCanvasLoop(): void {
   let lastT = performance.now();
   function loop(t: number): void {

@@ -22,6 +22,7 @@ const CLIMBTEST = process.argv.includes('--climbtest');
 const MON2TEST = process.argv.includes('--mon2test');
 const MEMLOG = process.argv.includes('--memlog'); // periodic per-process memory/CPU sampling
 const SEAMTEST = process.argv.includes('--seamtest'); // oscillate the pet across the monitor seam
+const GEOMTEST = process.argv.includes('--geomtest'); // log window/content/pet/bubble geometry over time
 // When true, updates download + install on quit silently (no pet announcement, no
 // tray "지금 업데이트" item). 1.0.7 improves the size feature, so announce it.
 const SILENT_UPDATES = false;
@@ -691,6 +692,30 @@ app.whenReady().then(() => {
 
   if (SEAMTEST) {
     setTimeout(() => pets[0]?.sim?.startSeamTest(), 2500);
+  }
+
+  if (GEOMTEST) {
+    const w = pets[0]?.window;
+    if (w) {
+      let n = 0;
+      const iv = setInterval(async () => {
+        if (w.isDestroyed()) return clearInterval(iv);
+        const [sw, sh] = w.getSize();
+        const [cw, ch] = w.getContentSize();
+        const geo = await w.webContents
+          .executeJavaScript(
+            `(() => { const p=document.getElementById('pet').getBoundingClientRect(),
+             b=document.getElementById('bubble').getBoundingClientRect();
+             return {iw:innerWidth,ih:innerHeight,dpr:devicePixelRatio,
+               petL:Math.round(p.left),petW:Math.round(p.width),petCx:Math.round(p.left+p.width/2),
+               bubL:Math.round(b.left),bubW:Math.round(b.width),
+               cvW:document.getElementById('pet').width}; })()`,
+          )
+          .catch(() => null);
+        console.log(`[geom] size=${sw}x${sh} content=${cw}x${ch} ${JSON.stringify(geo)}`);
+        if (++n >= 10) clearInterval(iv);
+      }, 800);
+    }
   }
 
   if (MEMLOG) {

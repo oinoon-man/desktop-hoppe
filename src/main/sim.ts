@@ -234,6 +234,36 @@ export class PetSim {
     for (const d of screen.getAllDisplays()) m = Math.max(m, d.workArea.x + d.workArea.width);
     return m - this.size;
   }
+  // The contiguous horizontal run of *adjacent* display work areas that includes the
+  // display under `cx` (or the nearest one when `cx` is in a gap). The pet wanders and
+  // steps across seams within this run, but never targets the void between non-adjacent
+  // monitors — walking into that gap is what wedged it in a multi-monitor "dead zone".
+  private walkableSpan(cx: number): { lo: number; hi: number } {
+    const areas = screen.getAllDisplays().map((d) => d.workArea).sort((a, b) => a.x - b.x);
+    if (areas.length === 0) {
+      const wa = this.workArea();
+      return { lo: wa.x, hi: wa.x + wa.width - this.size };
+    }
+    const x = Math.round(cx);
+    let idx = areas.findIndex((w) => x >= w.x && x < w.x + w.width);
+    if (idx < 0) {
+      // In a gap or off the outer edge: anchor to the nearest display by x-distance.
+      idx = 0;
+      let best = Infinity;
+      areas.forEach((w, i) => {
+        const dist = x < w.x ? w.x - x : x - (w.x + w.width);
+        if (dist < best) {
+          best = dist;
+          idx = i;
+        }
+      });
+    }
+    let lo = areas[idx].x;
+    let hi = areas[idx].x + areas[idx].width;
+    for (let i = idx - 1; i >= 0 && Math.abs(areas[i].x + areas[i].width - lo) <= 2; i--) lo = areas[i].x;
+    for (let i = idx + 1; i < areas.length && Math.abs(areas[i].x - hi) <= 2; i++) hi = areas[i].x + areas[i].width;
+    return { lo, hi: hi - this.size };
+  }
 
   private spans(p: Rect, cx: number): boolean {
     return cx >= p.x && cx <= p.x + p.w;
@@ -524,8 +554,11 @@ export class PetSim {
       lo = this.supportRect.x - this.size / 2 + 10;
       hi = this.supportRect.x + this.supportRect.w - this.size / 2 - 10;
     } else {
-      lo = this.minX();
-      hi = this.maxX();
+      // Roam the contiguous monitor run under the pet, not the union of all displays —
+      // the latter includes gaps/dead zones the pet would walk into and get stuck.
+      const span = this.walkableSpan(this.centerX());
+      lo = span.lo;
+      hi = span.hi;
     }
     if (hi < lo) hi = lo;
     return lo + Math.random() * (hi - lo);

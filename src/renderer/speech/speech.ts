@@ -23,9 +23,12 @@ const SHOW_PER_CHAR_MS = 145;
 // overwrite or hide them while pinned.
 const ANNOUNCE_PIN_MS = 60000;
 const AMBIENT_MODES: ReadonlySet<Mode> = new Set(['idle', 'walk', 'sleep']);
-// Max characters per rendered line. Japanese has no spaces, so a long line has no
-// natural wrap point and would spill out of the bubble — wrap it ourselves.
-const BUBBLE_MAX_CHARS = 11;
+// Target line width, in "full-width units" (a CJK glyph = 1). Japanese has no spaces,
+// so a long line has no natural wrap point and would spill out of the bubble — wrap it
+// ourselves. The bubble's max-width fits ~11 full-width glyphs; counting half-width
+// (Latin/digits) as 0.5 lets a Latin line fill the same width instead of collapsing
+// into a too-narrow bubble at 11 characters.
+const BUBBLE_MAX_UNITS = 11;
 
 /** A dialogue line normalized to a common shape (see DialogueLine in types). */
 interface Line {
@@ -182,13 +185,29 @@ function toLine(entry: DialogueLine): Line {
   return { text: entry.text, thought: entry.thought === true };
 }
 
+/** Visual width of one code point in "full-width units": CJK/Hangul/Kana and full-width
+ *  forms count as 1, everything else (Latin, digits, punctuation) as 0.5. */
+function charUnits(ch: string): number {
+  return /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/.test(
+    ch,
+  )
+    ? 1
+    : 0.5;
+}
+function unitsOf(chars: string[]): number {
+  let n = 0;
+  for (const c of chars) n += charUnits(c);
+  return n;
+}
 /**
- * Wrap `text` so no rendered line exceeds `max` characters. Wraps on spaces where
+ * Wrap `text` so no rendered line exceeds `max` full-width units. Wraps on spaces where
  * possible (Korean/English keep whole words) and hard-breaks a run with no spaces
- * (Japanese) every `max` chars, so it can't overflow the bubble. Existing newlines
- * are preserved. Counts by code point so surrogate-pair chars (emoji) aren't split.
+ * (Japanese) at the width limit, so it can't overflow the bubble. Widths are counted
+ * per script (see `charUnits`) so a Latin line fills the bubble instead of collapsing
+ * at 11 half-width chars. Existing newlines are preserved; counts by code point so
+ * surrogate-pair chars (emoji) aren't split.
  */
-function wrapText(text: string, max = BUBBLE_MAX_CHARS): string {
+function wrapText(text: string, max = BUBBLE_MAX_UNITS): string {
   const lines: string[] = [];
   for (const para of text.split('\n')) {
     let line: string[] = [];
@@ -198,13 +217,17 @@ function wrapText(text: string, max = BUBBLE_MAX_CHARS): string {
     };
     for (const word of para.split(/\s+/).filter(Boolean)) {
       let w = [...word];
-      while (w.length > max) {
+      // Hard-break a single run wider than a line (spaceless CJK, long URLs).
+      while (unitsOf(w) > max) {
+        let take = 0;
+        for (let acc = 0; take < w.length && acc + charUnits(w[take]) <= max; take++) acc += charUnits(w[take]);
+        take = Math.max(1, take);
         flush();
-        lines.push(w.slice(0, max).join(''));
-        w = w.slice(max);
+        lines.push(w.slice(0, take).join(''));
+        w = w.slice(take);
       }
       if (line.length === 0) line = w;
-      else if (line.length + 1 + w.length <= max) line = [...line, ' ', ...w];
+      else if (unitsOf(line) + 0.5 + unitsOf(w) <= max) line = [...line, ' ', ...w];
       else {
         flush();
         line = w;

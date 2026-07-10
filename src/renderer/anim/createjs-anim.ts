@@ -86,6 +86,13 @@ export class CreateJSAnimator {
 
         this.applyScale();
         cjs.Ticker.framerate = fps;
+        // Drive ticks from a timer, not requestAnimationFrame. This overlay is never
+        // focused (focusable:false), and Chromium pauses/throttles rAF for a non-focused
+        // window — which froze the pet mid-motion (the "일시정지" bug). TIMEOUT keeps
+        // advancing while the window is visible; we still fully detach when it's hidden
+        // (below). Unlike 1.0.3's backgroundThrottling:false, this doesn't disable
+        // Chromium's occlusion handling, so it can't bring back the compositor RAM runaway.
+        cjs.Ticker.timingMode = cjs.Ticker.TIMEOUT;
         cjs.Ticker.addEventListener('tick', this.stage);
         // Stop compositing entirely while the window is hidden (tray "숨기기" /
         // minimized): detach the stage from the Ticker so a hidden pet costs no
