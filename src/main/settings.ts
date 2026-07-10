@@ -2,7 +2,7 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { isLocale, type Locale } from '../shared/i18n';
-import { isCharacterId, type CharacterId } from '../shared/types';
+import { CHARACTERS, type CharacterId } from '../shared/types';
 
 // Persisted user settings (userData/settings.json). Small and forgiving: unknown,
 // BOM-prefixed, or corrupt files fall back to defaults.
@@ -11,30 +11,28 @@ export interface Settings {
   speech: boolean; // random speech bubbles on/off
   climbing: boolean; // stand/walk on other windows on/off
   behind: boolean; // keep the pet behind other windows (don't cover them)
-  pets: number; // number of pet instances (1..MAX_PETS)
+  roster: Record<CharacterId, number>; // how many of each character to run (each 0..MAX_PETS)
   autostart: boolean; // launch at login
   opacity: number; // pet window opacity, 1..100 (%)
   size: number; // pet scale, one of SIZE_STEPS (%)
   stay: boolean; // "기다려!" — seal wandering (stand/sleep only), interaction still ok
   beta: boolean; // opt in to the beta update channel (test builds before they go live)
   locale: Locale; // UI + dialogue language (ko/ja/en)
-  character: CharacterId; // which pet character to show (butter/komi)
 }
 
-export const MAX_PETS = 5;
+export const MAX_PETS = 5; // per-character maximum (so up to MAX_PETS × #characters total)
 export const SIZE_STEPS = [10, 30, 50, 70, 100] as const; // allowed pet sizes (%)
 const DEFAULTS: Settings = {
   speech: true,
   climbing: true,
   behind: false,
-  pets: 1,
+  roster: { butter: 1, komi: 0 },
   autostart: false,
   opacity: 100,
   size: 100,
   stay: false,
   beta: false,
   locale: 'ko',
-  character: 'butter',
 };
 
 function file(): string {
@@ -47,9 +45,28 @@ function readText(p: string): string {
   return text;
 }
 
-export function clampPets(n: unknown): number {
-  const v = typeof n === 'number' && Number.isFinite(n) ? Math.floor(n) : DEFAULTS.pets;
-  return Math.max(1, Math.min(MAX_PETS, v));
+// A single character's count: 0..MAX_PETS (0 = none of that character).
+export function clampCount(n: unknown): number {
+  const v = typeof n === 'number' && Number.isFinite(n) ? Math.floor(n) : 0;
+  return Math.max(0, Math.min(MAX_PETS, v));
+}
+
+// Normalize a persisted roster: clamp each character 0..MAX_PETS, migrate a pre-roster
+// file (single `pets` count → that many Butter), and never end up with zero total pets.
+export function clampRoster(raw: { roster?: unknown; pets?: unknown } | undefined): Record<CharacterId, number> {
+  const src = (raw && typeof raw.roster === 'object' && raw.roster) || {};
+  const roster = {} as Record<CharacterId, number>;
+  let total = 0;
+  for (const id of Object.keys(CHARACTERS) as CharacterId[]) {
+    roster[id] = clampCount((src as Record<string, unknown>)[id]);
+    total += roster[id];
+  }
+  if (total === 0 && raw && typeof raw.pets === 'number') {
+    roster.butter = Math.max(1, Math.min(MAX_PETS, Math.floor(raw.pets)));
+    total = roster.butter;
+  }
+  if (total === 0) roster.butter = 1;
+  return roster;
 }
 
 export function clampOpacity(n: unknown): number {
@@ -72,14 +89,13 @@ export function loadSettings(): Settings {
       speech: typeof raw.speech === 'boolean' ? raw.speech : DEFAULTS.speech,
       climbing: typeof raw.climbing === 'boolean' ? raw.climbing : DEFAULTS.climbing,
       behind: typeof raw.behind === 'boolean' ? raw.behind : DEFAULTS.behind,
-      pets: clampPets(raw.pets),
+      roster: clampRoster(raw),
       autostart: typeof raw.autostart === 'boolean' ? raw.autostart : DEFAULTS.autostart,
       opacity: clampOpacity(raw.opacity),
       size: clampSize(raw.size),
       stay: typeof raw.stay === 'boolean' ? raw.stay : DEFAULTS.stay,
       beta: typeof raw.beta === 'boolean' ? raw.beta : DEFAULTS.beta,
       locale: isLocale(raw.locale) ? raw.locale : DEFAULTS.locale,
-      character: isCharacterId(raw.character) ? raw.character : DEFAULTS.character,
     };
   } catch {
     return { ...DEFAULTS };

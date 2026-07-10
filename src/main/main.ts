@@ -6,9 +6,9 @@ import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from
 import { fetchDevlogList, fetchDevlogPost } from './devlog';
 import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Settings } from './settings';
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall, setUpdateChannel } from './updater';
-import { t, LOCALES, LOCALE_LABELS, type Locale } from '../shared/i18n';
+import { t, LOCALES, LOCALE_LABELS, type Locale, type UIKey } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
-import { isCharacterId, type CharacterId } from '../shared/types';
+import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
 
 // ---------------------------------------------------------------------------
 // Main process
@@ -38,6 +38,7 @@ process.on('unhandledRejection', (err) => console.error('[main] unhandled reject
 interface Pet {
   window: BrowserWindow;
   sim: PetSim | null;
+  character: CharacterId; // which roster slot this pet fills (for count reconciliation)
 }
 
 let pets: Pet[] = [];
@@ -119,7 +120,10 @@ function loadDialogue(locale: Locale): PetDialogue {
 
 // --- pets ------------------------------------------------------------------
 
-function createPet(index: number): Pet {
+function createPet(index: number, character: CharacterId): Pet {
+  // --char= (dev) forces which art renders; the roster slot (`character`) is still what
+  // this pet counts as, so count reconciliation stays correct.
+  const renderChar: CharacterId = CHAR_OVERRIDE && isCharacterId(CHAR_OVERRIDE) ? CHAR_OVERRIDE : character;
   const wa = screen.getPrimaryDisplay().workArea;
   // The window stays PET_SIZE regardless of the size setting: it must hold the speech
   // bubble (which never shrinks below readable), and the pet art is scaled+placed inside
@@ -174,7 +178,7 @@ function createPet(index: number): Pet {
     }
   });
 
-  const pet: Pet = { window, sim: null };
+  const pet: Pet = { window, sim: null, character };
 
   window.webContents.on('did-finish-load', () => {
     if (window.isDestroyed()) return;
@@ -201,16 +205,26 @@ function createPet(index: number): Pet {
     pet.sim = null;
   });
 
-  void window.loadFile(path.join(__dirname, 'index.html'), { query: { char: petCharacter() } });
+  void window.loadFile(path.join(__dirname, 'index.html'), { query: { char: renderChar } });
   return pet;
 }
 
-function setPetCount(n: number): void {
-  n = Math.max(1, Math.min(MAX_PETS, n));
-  while (pets.length < n) pets.push(createPet(pets.length));
-  while (pets.length > n) {
-    const p = pets.pop();
-    if (p && !p.window.isDestroyed()) p.window.close();
+// Reconcile the live pets to settings.roster: per character, add or close the difference
+// (so changing one character's count leaves the others in place). Skips destroyed windows.
+function applyRoster(): void {
+  // Drop any windows that closed themselves before reconciling counts.
+  for (let i = pets.length - 1; i >= 0; i--) if (pets[i].window.isDestroyed()) pets.splice(i, 1);
+  for (const id of Object.keys(CHARACTERS) as CharacterId[]) {
+    const want = settings.roster[id] ?? 0;
+    const mine = pets.filter((p) => p.character === id);
+    for (let have = mine.length; have < want; have++) pets.push(createPet(pets.length, id));
+    for (let have = mine.length; have > want; have--) {
+      const p = mine.pop();
+      if (p) {
+        pets.splice(pets.indexOf(p), 1);
+        if (!p.window.isDestroyed()) p.window.close();
+      }
+    }
   }
 }
 
@@ -256,11 +270,6 @@ function applyBehind(): void {
 }
 // The slider shows 1–100, but the applied opacity is floored at 10% so the pet
 // never becomes fully invisible (that is what 숨기기 is for).
-// Which character new pet windows show: the --char dev override, else the setting.
-function petCharacter(): CharacterId {
-  const c = CHAR_OVERRIDE ?? settings.character;
-  return isCharacterId(c) ? c : 'butter';
-}
 function effectiveOpacity(): number {
   return Math.max(10, settings.opacity) / 100;
 }
@@ -343,21 +352,23 @@ function buildTrayMenu(): Menu {
         { type: 'separator' },
       ]
     : [];
-  // "버터가 복사가 된다고": pick how many pets run (1..MAX_PETS).
-  const copiesSubmenu: Electron.MenuItemConstructorOptions[] = Array.from(
-    { length: MAX_PETS },
-    (_, i) => i + 1,
-  ).map((n) => ({
-    label: String(n),
-    type: 'radio',
-    checked: settings.pets === n,
-    click: () => {
-      settings.pets = n;
-      saveSettings(settings);
-      setPetCount(n);
-      rebuildTray();
-    },
-  }));
+  // "친구들 데려오기": per-character counts (0..MAX_PETS each) so Butter + Komi can share
+  // the screen. Each character gets its own count submenu.
+  const countSubmenu = (id: CharacterId): Electron.MenuItemConstructorOptions[] =>
+    Array.from({ length: MAX_PETS + 1 }, (_, n) => ({
+      label: String(n),
+      type: 'radio' as const,
+      checked: (settings.roster[id] ?? 0) === n,
+      click: () => {
+        settings.roster = { ...settings.roster, [id]: n };
+        saveSettings(settings);
+        applyRoster();
+        rebuildTray();
+      },
+    }));
+  const copiesSubmenu: Electron.MenuItemConstructorOptions[] = (Object.keys(CHARACTERS) as CharacterId[]).map(
+    (id) => ({ label: t(l, `char_${id}` as UIKey), submenu: countSubmenu(id) }),
+  );
   // Language picker (한국어 / 日本語 / English).
   const languageSubmenu: Electron.MenuItemConstructorOptions[] = LOCALES.map((loc) => ({
     label: LOCALE_LABELS[loc],
@@ -681,7 +692,7 @@ app.whenReady().then(() => {
   }
 
   createTray();
-  for (let i = 0; i < settings.pets; i++) pets.push(createPet(i));
+  applyRoster(); // spawn the configured number of each character
 
   if (MON2TEST) {
     setTimeout(() => {
@@ -793,7 +804,7 @@ app.whenReady().then(() => {
 
   globalShortcut.register('CommandOrControl+Shift+Q', () => app.quit());
   app.on('activate', () => {
-    if (pets.length === 0) setPetCount(settings.pets);
+    if (pets.length === 0) applyRoster();
   });
 });
 

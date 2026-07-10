@@ -107,6 +107,7 @@ function animatorFor(clip: Mode): IAnimator {
 const charParam = new URLSearchParams(location.search).get('char');
 const character = CHARACTERS[isCharacterId(charParam) ? charParam : 'butter'];
 const charBase = `./assets/animate/${character.motionsDir}/`;
+console.log('[char]', character.id);
 
 function loadMotionScripts(base: string): Promise<void> {
   // Sequentially — each registers into the shared createjs / AdobeAn globals.
