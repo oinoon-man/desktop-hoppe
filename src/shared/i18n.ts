@@ -38,6 +38,7 @@ const UI = {
   opacity: { ko: '투명도 조절', ja: '透明度の調整', en: 'Adjust opacity' },
   opacityLabel: { ko: '투명도', ja: '透明度', en: 'Opacity' },
   autostart: { ko: '로그인 시 자동 실행', ja: 'ログイン時に自動起動', en: 'Launch at login' },
+  betaUpdates: { ko: '테스트(베타) 업데이트 받기', ja: 'テスト(ベータ)版を受け取る', en: 'Get beta updates' },
   language: { ko: '언어', ja: '言語', en: 'Language' },
   credits: { ko: '만든 사람들', ja: '制作スタッフ', en: 'Credits' },
   hide: { ko: '숨기기', ja: '隠す', en: 'Hide' },

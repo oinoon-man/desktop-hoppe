@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { PetSim } from './sim';
 import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from './windows';
 import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Settings } from './settings';
-import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall } from './updater';
+import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall, setUpdateChannel } from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
 
@@ -434,6 +434,17 @@ function buildTrayMenu(): Menu {
         rebuildTray();
       },
     },
+    {
+      label: t(l, 'betaUpdates'),
+      type: 'checkbox',
+      checked: settings.beta,
+      click: () => {
+        settings.beta = !settings.beta;
+        saveSettings(settings);
+        setUpdateChannel(settings.beta); // switch channel + re-check now
+        rebuildTray();
+      },
+    },
     { type: 'separator' },
     { label: `ver. ${app.getVersion()}`, enabled: false },
     { label: t(l, 'language'), submenu: languageSubmenu },
@@ -684,12 +695,15 @@ app.whenReady().then(() => {
 
   // Auto-update: when a new version is downloaded, the pet announces it and the
   // tray gains a "지금 업데이트" item; it also installs silently on next quit.
-  initAutoUpdater({
-    onUpdateReady: () => {
-      announceUpdate();
-      rebuildTray();
+  initAutoUpdater(
+    {
+      onUpdateReady: () => {
+        announceUpdate();
+        rebuildTray();
+      },
     },
-  });
+    settings.beta, // stable users stay on `latest`; only opt-in testers get `beta`
+  );
 
   globalShortcut.register('CommandOrControl+Shift+Q', () => app.quit());
   app.on('activate', () => {

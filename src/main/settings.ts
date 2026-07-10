@@ -15,6 +15,7 @@ export interface Settings {
   opacity: number; // pet window opacity, 1..100 (%)
   size: number; // pet scale, one of SIZE_STEPS (%)
   stay: boolean; // "기다려!" — seal wandering (stand/sleep only), interaction still ok
+  beta: boolean; // opt in to the beta update channel (test builds before they go live)
   locale: Locale; // UI + dialogue language (ko/ja/en)
 }
 
@@ -29,6 +30,7 @@ const DEFAULTS: Settings = {
   opacity: 100,
   size: 100,
   stay: false,
+  beta: false,
   locale: 'ko',
 };
 
@@ -72,6 +74,7 @@ export function loadSettings(): Settings {
       opacity: clampOpacity(raw.opacity),
       size: clampSize(raw.size),
       stay: typeof raw.stay === 'boolean' ? raw.stay : DEFAULTS.stay,
+      beta: typeof raw.beta === 'boolean' ? raw.beta : DEFAULTS.beta,
       locale: isLocale(raw.locale) ? raw.locale : DEFAULTS.locale,
     };
   } catch {

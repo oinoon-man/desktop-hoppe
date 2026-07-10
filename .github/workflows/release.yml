@@ -70,8 +70,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A prerelease tag (has a '-', e.g. v2.0.0-beta.1) publishes as a GitHub
+          # PRERELEASE and is NEVER marked latest — so stable (`latest` channel) users
+          # can't see it. Only a clean tag (v2.0.0) becomes --latest. This is the guard
+          # that keeps the live build safe while betas are flying.
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            RELEASE_FLAG="--prerelease"
+          else
+            RELEASE_FLAG="--latest"
+          fi
           gh release create "$GITHUB_REF_NAME" dist/* \
             -R "$GITHUB_REPOSITORY" \
             --title "Desktop Butter ${GITHUB_REF_NAME#v}" \
             --generate-notes \
-            --latest
+            $RELEASE_FLAG

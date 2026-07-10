@@ -30,13 +30,30 @@ export function updateReadyVersion(): string {
   return readyVersion;
 }
 
-export function initAutoUpdater(hooks: UpdaterHooks): void {
+// Update channel: stable users stay on `latest` (only sees non-prerelease `latest.yml`);
+// opt-in testers switch to `beta` (sees prerelease `beta.yml`). Keeping these separate is
+// what isolates live users from -beta.N builds — a `latest` user never sees a prerelease.
+function applyChannel(beta: boolean): void {
+  autoUpdater.channel = beta ? 'beta' : 'latest';
+  autoUpdater.allowPrerelease = beta;
+}
+
+/** Switch channel at runtime (from the "베타 업데이트 받기" toggle) and re-check. */
+export function setUpdateChannel(beta: boolean): void {
+  if (!app.isPackaged) return;
+  applyChannel(beta);
+  autoUpdater.checkForUpdates().catch((e) => console.error('[updater] channel re-check failed:', e?.message ?? e));
+}
+
+export function initAutoUpdater(hooks: UpdaterHooks, beta = false): void {
   // No app-update.yml when running unpackaged (npm start) or as the portable
   // build — checking would just throw, so skip cleanly.
   if (!app.isPackaged) {
     console.log('[updater] skipped (not packaged)');
     return;
   }
+
+  applyChannel(beta); // stable → latest.yml, tester → beta.yml (opt-in)
 
   // Download automatically, but DO NOT auto-restart: we let the user apply it
   // via the tray, and install silently on the next normal quit.
