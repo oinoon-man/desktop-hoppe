@@ -55,6 +55,13 @@ const targets = [
     platform: 'browser',
     format: 'iife',
   },
+  {
+    ...common,
+    entryPoints: ['src/renderer/patchnotes.ts'],
+    outfile: `${outdir}/patchnotes.js`,
+    platform: 'browser',
+    format: 'iife',
+  },
 ];
 
 async function copyStatic() {
@@ -62,6 +69,7 @@ async function copyStatic() {
   await cp('src/renderer/index.html', `${outdir}/index.html`);
   await cp('src/renderer/credits.html', `${outdir}/credits.html`);
   await cp('src/renderer/opacity.html', `${outdir}/opacity.html`);
+  await cp('src/renderer/patchnotes.html', `${outdir}/patchnotes.html`);
   // Copy prototype/art assets if present so they're served same-origin from dist/.
   try {
     await access('assets');

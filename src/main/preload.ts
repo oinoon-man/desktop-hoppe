@@ -38,3 +38,10 @@ contextBridge.exposeInMainWorld('opacityAPI', {
   get: () => ipcRenderer.invoke('get-opacity'),
   set: (v: number) => ipcRenderer.send('set-opacity', v),
 });
+
+// Patch-notes window API (itch.io devlog is fetched by main).
+contextBridge.exposeInMainWorld('patchnotesAPI', {
+  list: () => ipcRenderer.invoke('devlog-list'),
+  post: (url: string) => ipcRenderer.invoke('devlog-post', url),
+  openExternal: (url: string) => ipcRenderer.send('open-external', url),
+});

@@ -4,6 +4,13 @@
 /** High-level animation/behavior state of the pet. */
 export type Mode = 'idle' | 'walk' | 'drag' | 'fall' | 'land' | 'sleep';
 
+/** One itch.io devlog entry (in-app patch notes list). */
+export interface DevlogItem {
+  title: string;
+  link: string;
+  date: string; // RFC-822 pubDate string
+}
+
 /** Pushed from main -> renderer whenever the pet's mode or facing changes. */
 export interface PetState {
   mode: Mode;

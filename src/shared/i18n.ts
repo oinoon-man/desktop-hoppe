@@ -41,6 +41,14 @@ const UI = {
   betaUpdates: { ko: '테스트(베타) 업데이트 받기', ja: 'テスト(ベータ)版を受け取る', en: 'Get beta updates' },
   language: { ko: '언어', ja: '言語', en: 'Language' },
   credits: { ko: '만든 사람들', ja: '制作スタッフ', en: 'Credits' },
+  patchnotes: { ko: '패치노트', ja: 'パッチノート', en: 'Patch notes' },
+  patchnotesFull: { ko: 'itch.io에서 전체 보기', ja: 'itch.ioで全文を見る', en: 'Read full post on itch.io' },
+  patchnotesLoading: { ko: '불러오는 중…', ja: '読み込み中…', en: 'Loading…' },
+  patchnotesError: {
+    ko: '패치노트를 불러올 수 없어요 (인터넷 연결을 확인해 주세요)',
+    ja: 'パッチノートを読み込めませんでした（接続を確認してください）',
+    en: "Couldn't load the patch notes (check your connection)",
+  },
   hide: { ko: '숨기기', ja: '隠す', en: 'Hide' },
   quit: { ko: '종료 (Ctrl+Shift+Q)', ja: '終了 (Ctrl+Shift+Q)', en: 'Quit (Ctrl+Shift+Q)' },
   updateNow: {

@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { PetSim } from './sim';
 import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from './windows';
+import { fetchDevlogList, fetchDevlogPost } from './devlog';
 import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Settings } from './settings';
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall, setUpdateChannel } from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale } from '../shared/i18n';
@@ -41,6 +42,7 @@ let watcher: WindowWatcher | null = null;
 let tray: Tray | null = null;
 let creditsWindow: BrowserWindow | null = null;
 let opacityWindow: BrowserWindow | null = null;
+let patchnotesWindow: BrowserWindow | null = null;
 let hidden = false; // 숨기기 toggle (session-only, not persisted)
 let opacitySaveTimer: ReturnType<typeof setTimeout> | null = null;
 let settings: Settings;
@@ -448,6 +450,7 @@ function buildTrayMenu(): Menu {
     { type: 'separator' },
     { label: `ver. ${app.getVersion()}`, enabled: false },
     { label: t(l, 'language'), submenu: languageSubmenu },
+    { label: t(l, 'patchnotes'), click: () => openPatchnotesWindow() },
     { label: t(l, 'credits'), click: () => openCredits() },
     { type: 'separator' },
     {
@@ -477,6 +480,8 @@ function setLocale(loc: Locale): void {
   }
   if (creditsWindow && !creditsWindow.isDestroyed()) loadCredits(creditsWindow);
   if (opacityWindow && !opacityWindow.isDestroyed()) loadOpacity(opacityWindow);
+  if (patchnotesWindow && !patchnotesWindow.isDestroyed())
+    void patchnotesWindow.loadFile(path.join(__dirname, 'patchnotes.html'), { query: { loc } });
   rebuildTray();
 }
 
@@ -535,6 +540,48 @@ function openCredits(): void {
   });
 }
 
+// In-app patch notes: a window that lists the itch.io devlog and shows each post's
+// full body (main does the fetching; see devlog.ts). Links open in the browser.
+function openPatchnotesWindow(): void {
+  if (patchnotesWindow && !patchnotesWindow.isDestroyed()) {
+    patchnotesWindow.show();
+    patchnotesWindow.focus();
+    return;
+  }
+  patchnotesWindow = new BrowserWindow({
+    width: 660,
+    height: 540,
+    useContentSize: true,
+    title: t(settings.locale, 'patchnotes'),
+    center: true,
+    maximizable: false,
+    fullscreenable: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  const openExternal = (url: string) => {
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
+  };
+  patchnotesWindow.webContents.setWindowOpenHandler(({ url }) => {
+    openExternal(url);
+    return { action: 'deny' };
+  });
+  patchnotesWindow.webContents.on('will-navigate', (e, url) => {
+    e.preventDefault();
+    openExternal(url);
+  });
+  void patchnotesWindow.loadFile(path.join(__dirname, 'patchnotes.html'), {
+    query: { loc: settings.locale },
+  });
+  patchnotesWindow.on('closed', () => {
+    patchnotesWindow = null;
+  });
+}
+
 // --- opacity slider window -------------------------------------------------
 
 function loadOpacity(win: BrowserWindow): void {
@@ -574,6 +621,13 @@ function openOpacityWindow(): void {
 ipcMain.on('grab', (e) => petBySender(e.sender.id)?.sim?.onGrab());
 ipcMain.on('release', (e) => petBySender(e.sender.id)?.sim?.onRelease());
 ipcMain.on('show-context-menu', () => tray?.popUpContextMenu());
+
+// Patch-notes window ↔ main: fetch the itch.io devlog, open links in the browser.
+ipcMain.handle('devlog-list', () => fetchDevlogList());
+ipcMain.handle('devlog-post', (_e, url: string) => fetchDevlogPost(url));
+ipcMain.on('open-external', (_e, url: string) => {
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) void shell.openExternal(url);
+});
 
 ipcMain.handle('get-opacity', () => settings.opacity);
 ipcMain.on('set-opacity', (_e, v: number) => {
