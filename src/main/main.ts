@@ -213,7 +213,7 @@ function createPet(index: number, character: CharacterId): Pet {
     window.webContents.send('pet-size', scaledSize());
     window.webContents.send('opacity', effectiveOpacity());
     window.webContents.send('max-fps', isRemoteSession() ? RDP_MAX_FPS : 0); // throttle under RDP
-    if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine());
+    if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine(pet.character));
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
     // previous sim so its interval doesn't keep running orphaned alongside the new one.
@@ -364,14 +364,14 @@ function revealPets(): void {
 // --- auto-update announce --------------------------------------------------
 // When an update is ready the pet speaks up (a one-off notice) and the tray
 // grows a "지금 업데이트" item. The line the pet says (in the current language):
-function announceLine(): string {
-  return t(settings.locale, 'updateAnnounce');
+function announceLine(character: CharacterId): string {
+  return t(settings.locale, character === 'komi' ? 'updateAnnounceKomi' : 'updateAnnounce');
 }
 
 function announceUpdate(): void {
   if (SILENT_UPDATES) return;
   for (const p of pets) {
-    if (!p.window.isDestroyed()) p.window.webContents.send('update-announce', announceLine());
+    if (!p.window.isDestroyed()) p.window.webContents.send('update-announce', announceLine(p.character));
   }
 }
 

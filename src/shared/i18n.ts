@@ -59,6 +59,7 @@ const UI = {
     en: '✨ Update now (v{v})',
   },
   updateAnnounce: { ko: '업데이트가 있대요!', ja: 'アップデートがあるって！', en: 'There’s an update!' },
+  updateAnnounceKomi: { ko: '업데이트가 있대, 교주.', ja: 'アップデートあるって、教主。', en: 'There’s an update, master.' },
   // Credits window
   rolePlanDev: { ko: '기획 · 개발', ja: '企画・開発', en: 'Design · Dev' },
   roleGraphic: { ko: '그래픽', ja: 'グラフィック', en: 'Art' },
