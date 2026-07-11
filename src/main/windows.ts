@@ -26,8 +26,14 @@ let GetWindowTextLengthW: any;
 let GetWindowTextW: any;
 let DwmGetWindowAttribute: any;
 let SetWindowPos: any;
+let GetSystemMetrics: any;
 let enumCb: any = null;
 let collected: any[] = [];
+
+// GetSystemMetrics(SM_REMOTESESSION) is non-zero when the app runs inside a Remote Desktop
+// (RDP) session — used to throttle the animation there (every repaint is streamed over the
+// wire, so a continuously-animating transparent window floods the RDP upload channel).
+const SM_REMOTESESSION = 0x1000;
 
 // SetWindowPos: keep the pet at the bottom of the z-order ("윈도우 맨 뒤로").
 const HWND_BOTTOM = 1;
@@ -54,6 +60,7 @@ export function initWindows(): boolean {
     SetWindowPos = user32.func(
       'bool SetWindowPos(intptr_t hwnd, intptr_t after, int x, int y, int cx, int cy, uint flags)',
     );
+    GetSystemMetrics = user32.func('int GetSystemMetrics(int index)');
     const CB = k.proto('bool CB(void *hwnd, intptr_t lparam)');
     enumCb = k.register((h: any) => {
       collected.push(h);
@@ -69,6 +76,17 @@ export function initWindows(): boolean {
 
 export function isReady(): boolean {
   return ready;
+}
+
+/** True when running inside a Remote Desktop (RDP) session (Windows only; false without
+ *  the FFI or on other platforms). Used to throttle the animation to spare the RDP link. */
+export function isRemoteSession(): boolean {
+  if (!ready || !GetSystemMetrics) return false;
+  try {
+    return GetSystemMetrics(SM_REMOTESESSION) !== 0;
+  } catch {
+    return false;
+  }
 }
 
 /** Push a window to the bottom of the z-order (so it sits behind other apps).

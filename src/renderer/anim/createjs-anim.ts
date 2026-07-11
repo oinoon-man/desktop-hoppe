@@ -41,6 +41,8 @@ export class CreateJSAnimator {
   private renderPaused = false; // Ticker detached while the window is hidden
   private petSize = 0; // intended pet px from main; scale the art from this, not the window
   private flip = new Set<Mode>(); // motions whose art is authored facing the other way
+  private compFps = 30; // the art's authored framerate
+  private maxFps = 0; // framerate cap (>0), e.g. under Remote Desktop; 0 = uncapped
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -67,7 +69,7 @@ export class CreateJSAnimator {
     if (descs.length === 0) return Promise.resolve(false);
 
     this.width = descs[0].props.width || 300;
-    const fps = descs[0].props.fps || 30;
+    this.compFps = descs[0].props.fps || 30;
 
     return Promise.all(descs.map((d) => this.loadComp(cjs, d, basePath)))
       .then(() => {
@@ -86,7 +88,7 @@ export class CreateJSAnimator {
         if (this.clips.size === 0) return false;
 
         this.applyScale();
-        cjs.Ticker.framerate = fps;
+        this.applyFramerate();
         // Drive ticks from a timer, not requestAnimationFrame. This overlay is never
         // focused (focusable:false), and Chromium pauses/throttles rAF for a non-focused
         // window — which froze the pet mid-motion (the "일시정지" bug). TIMEOUT keeps
@@ -239,6 +241,18 @@ export class CreateJSAnimator {
   /** Motions whose art is authored facing the opposite way (mirror them). Set before init. */
   setFlip(modes: Mode[] | undefined): void {
     this.flip = new Set(modes);
+  }
+
+  /** Cap the animation framerate (>0), e.g. under Remote Desktop; 0 = the art's own rate. */
+  setMaxFps(fps: number): void {
+    this.maxFps = fps > 0 ? fps : 0;
+    if (this.ready) this.applyFramerate();
+  }
+
+  private applyFramerate(): void {
+    const cjs: Any = (window as Any).createjs;
+    if (!cjs) return;
+    cjs.Ticker.framerate = this.maxFps > 0 ? Math.min(this.compFps, this.maxFps) : this.compFps;
   }
 
   /** Debug: each loaded motion's rendered bounds (to spot art that overflows the frame). */

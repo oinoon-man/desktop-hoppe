@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, shell, gl
 import path from 'node:path';
 import fs from 'node:fs';
 import { PetSim } from './sim';
-import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom } from './windows';
+import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom, isRemoteSession } from './windows';
 import { fetchDevlogList, fetchDevlogPost } from './devlog';
 import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Settings } from './settings';
 import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall, setUpdateChannel } from './updater';
@@ -18,6 +18,10 @@ import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
 // ---------------------------------------------------------------------------
 
 const PET_SIZE = 300;
+// Animation cap under Remote Desktop (RDP): the transparent window streams every repaint
+// over the wire, so a full-rate animation floods the RDP upload channel. Throttle it there
+// (0 elsewhere = uncapped). See isRemoteSession() + the renderer's Ticker cap.
+const RDP_MAX_FPS = 12;
 const DEBUG = process.argv.includes('--debug');
 const CLIMBTEST = process.argv.includes('--climbtest');
 const MON2TEST = process.argv.includes('--mon2test');
@@ -208,6 +212,7 @@ function createPet(index: number, character: CharacterId): Pet {
     window.webContents.send('set-locale', settings.locale);
     window.webContents.send('pet-size', scaledSize());
     window.webContents.send('opacity', effectiveOpacity());
+    window.webContents.send('max-fps', isRemoteSession() ? RDP_MAX_FPS : 0); // throttle under RDP
     if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
@@ -708,6 +713,8 @@ app.whenReady().then(() => {
   applyAutostart();
 
   climbingAvailable = initWindows();
+  const rdp = isRemoteSession();
+  console.log(`[rdp] remote session: ${rdp} (fps cap ${rdp ? RDP_MAX_FPS : 'off'})`);
   if (climbingAvailable) {
     console.log(`[windows] climbing available — ${enumerateShelves().length} shelves detected`);
     watcher = new WindowWatcher(distributePlatforms);

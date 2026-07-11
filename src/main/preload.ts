@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld('petAPI', {
   /** Pet opacity 0.1–1.0 (applied as CSS opacity — window.setOpacity is a no-op on Linux). */
   onOpacity: (cb: (opacity: number) => void) =>
     ipcRenderer.on('opacity', (_e, opacity: number) => cb(opacity)),
+  /** Cap the animation framerate (>0), e.g. under Remote Desktop; 0 = uncapped. */
+  onMaxFps: (cb: (fps: number) => void) =>
+    ipcRenderer.on('max-fps', (_e, fps: number) => cb(fps)),
 });
 
 // Opacity slider window API.

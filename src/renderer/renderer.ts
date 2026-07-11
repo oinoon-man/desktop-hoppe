@@ -25,6 +25,7 @@ interface PetAPI {
   onLocale: (cb: (locale: string) => void) => void;
   onPetSize: (cb: (size: number) => void) => void;
   onOpacity: (cb: (opacity: number) => void) => void;
+  onMaxFps: (cb: (fps: number) => void) => void;
 }
 const petAPI: PetAPI | undefined = (window as unknown as { petAPI?: PetAPI }).petAPI;
 
@@ -74,6 +75,12 @@ petAPI?.onUpdateAnnounce((line) => speech.announce(line));
 // Pet opacity applied as CSS (cross-platform; window.setOpacity is a no-op on Linux/X11).
 petAPI?.onOpacity((o) => {
   document.body.style.opacity = String(o > 0 ? Math.min(o, 1) : 1);
+});
+// Framerate cap (e.g. throttle under Remote Desktop). Stored so it applies once CJ is ready.
+let maxFps = 0;
+petAPI?.onMaxFps((fps) => {
+  maxFps = fps;
+  if (cjActive) cj.setMaxFps(fps);
 });
 petAPI?.onPetSize((n) => {
   petSize = n > 0 ? n : AUTHORED_SIZE;
@@ -145,6 +152,7 @@ loadMotionScripts(charBase)
     cjActive = ready;
     if (ready) {
       cj.setPetSize(petSize); // apply any size received before init resolved
+      cj.setMaxFps(maxFps); // apply any RDP framerate cap received before init resolved
       cj.onResize();
       cj.setFacing(facing);
       cj.setClip(mode);
