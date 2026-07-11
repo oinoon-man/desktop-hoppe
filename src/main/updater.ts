@@ -38,11 +38,24 @@ function applyChannel(beta: boolean): void {
   autoUpdater.allowPrerelease = beta;
 }
 
+// A missing manifest (HTTP 404) is EXPECTED where no update feed is published for this
+// build yet: macOS/Linux before a stable v2 release (the latest stable, v1.0.7, ships only
+// Windows manifests), or the beta channel before its first beta.yml. That isn't an error to
+// alarm testers with — log it calmly. Anything else stays a real error. Never rethrows.
+function logUpdaterError(e: unknown): void {
+  const msg = (e as { message?: string } | null)?.message ?? String(e);
+  if (/\b404\b|not ?found|ERR_UPDATER_LATEST_VERSION_NOT_FOUND|Cannot find|Unable to find/i.test(msg)) {
+    console.log('[updater] no update feed for this build yet — skipping:', msg.split('\n')[0]);
+  } else {
+    console.error('[updater] error:', msg);
+  }
+}
+
 /** Switch channel at runtime (from the "베타 업데이트 받기" toggle) and re-check. */
 export function setUpdateChannel(beta: boolean): void {
   if (!app.isPackaged) return;
   applyChannel(beta);
-  autoUpdater.checkForUpdates().catch((e) => console.error('[updater] channel re-check failed:', e?.message ?? e));
+  autoUpdater.checkForUpdates().catch(() => {}); // failures surface via the 'error' handler
 }
 
 export function initAutoUpdater(hooks: UpdaterHooks, beta = false): void {
@@ -63,7 +76,7 @@ export function initAutoUpdater(hooks: UpdaterHooks, beta = false): void {
   autoUpdater.on('checking-for-update', () => console.log('[updater] checking for update…'));
   autoUpdater.on('update-available', (info) => console.log(`[updater] update available: ${info.version}`));
   autoUpdater.on('update-not-available', () => console.log('[updater] up to date'));
-  autoUpdater.on('error', (err) => console.error('[updater] error:', err?.message ?? err));
+  autoUpdater.on('error', logUpdaterError);
   autoUpdater.on('download-progress', (p) => console.log(`[updater] downloading ${Math.round(p.percent)}%`));
   autoUpdater.on('update-downloaded', (info) => {
     ready = true;
@@ -72,8 +85,7 @@ export function initAutoUpdater(hooks: UpdaterHooks, beta = false): void {
     hooks.onUpdateReady(info.version);
   });
 
-  const check = () =>
-    autoUpdater.checkForUpdates().catch((e) => console.error('[updater] check failed:', e?.message ?? e));
+  const check = () => autoUpdater.checkForUpdates().catch(() => {}); // logged via 'error' handler
   setTimeout(check, INITIAL_DELAY_MS);
   setInterval(check, RECHECK_MS);
 
