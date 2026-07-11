@@ -21,8 +21,7 @@ export interface CharacterDef {
 
 export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   butter: { id: 'butter', motionsDir: 'motions', name: 'Butter' },
-  // Komi's standing (idle) + sleep art is authored facing the other way — mirror them.
-  komi: { id: 'komi', motionsDir: 'motions-komi', name: 'Komi', flip: ['idle', 'sleep'] },
+  komi: { id: 'komi', motionsDir: 'motions-komi', name: 'Komi' },
 };
 
 export function isCharacterId(v: unknown): v is CharacterId {
