@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld('petAPI', {
    *  from this, NOT the window, which can drift/grow on fractional-DPI displays). */
   onPetSize: (cb: (size: number) => void) =>
     ipcRenderer.on('pet-size', (_e, size: number) => cb(size)),
+  /** Pet opacity 0.1–1.0 (applied as CSS opacity — window.setOpacity is a no-op on Linux). */
+  onOpacity: (cb: (opacity: number) => void) =>
+    ipcRenderer.on('opacity', (_e, opacity: number) => cb(opacity)),
 });
 
 // Opacity slider window API.

@@ -24,6 +24,7 @@ interface PetAPI {
   onUpdateAnnounce: (cb: (line: string) => void) => void;
   onLocale: (cb: (locale: string) => void) => void;
   onPetSize: (cb: (size: number) => void) => void;
+  onOpacity: (cb: (opacity: number) => void) => void;
 }
 const petAPI: PetAPI | undefined = (window as unknown as { petAPI?: PetAPI }).petAPI;
 
@@ -70,6 +71,10 @@ petAPI?.onDialogue((d) => speech.load(d));
 petAPI?.onLocale((loc) => (document.documentElement.lang = loc));
 petAPI?.onSpeechEnabled((on) => speech.setEnabled(on));
 petAPI?.onUpdateAnnounce((line) => speech.announce(line));
+// Pet opacity applied as CSS (cross-platform; window.setOpacity is a no-op on Linux/X11).
+petAPI?.onOpacity((o) => {
+  document.body.style.opacity = String(o > 0 ? Math.min(o, 1) : 1);
+});
 petAPI?.onPetSize((n) => {
   petSize = n > 0 ? n : AUTHORED_SIZE;
   resize();

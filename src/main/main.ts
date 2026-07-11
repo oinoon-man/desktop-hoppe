@@ -174,7 +174,8 @@ function createPet(index: number, character: CharacterId): Pet {
   window.setAlwaysOnTop(true, 'screen-saver');
   window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   window.setIgnoreMouseEvents(true);
-  window.setOpacity(effectiveOpacity());
+  // Opacity is applied in the renderer as CSS (see the 'opacity' IPC on did-finish-load),
+  // not window.setOpacity — the latter is a no-op on Linux/X11 for a transparent window.
   applyBehindTo(window); // honor "윈도우 맨 뒤로" for freshly spawned pets
   if (hidden) window.hide();
   window.webContents.on('console-message', (e) => console.log('[renderer]', e.message));
@@ -206,6 +207,7 @@ function createPet(index: number, character: CharacterId): Pet {
     window.webContents.send('set-speech', settings.speech);
     window.webContents.send('set-locale', settings.locale);
     window.webContents.send('pet-size', scaledSize());
+    window.webContents.send('opacity', effectiveOpacity());
     if (!SILENT_UPDATES && isUpdateReady()) window.webContents.send('update-announce', announceLine());
     applyBehindTo(window); // re-assert z-order once the window is fully realized
     // did-finish-load also fires on a reload (e.g. the memory watchdog): retire the
@@ -295,7 +297,7 @@ function effectiveOpacity(): number {
 }
 function applyOpacity(): void {
   const o = effectiveOpacity();
-  for (const p of pets) if (!p.window.isDestroyed()) p.window.setOpacity(o);
+  for (const p of pets) if (!p.window.isDestroyed()) p.window.webContents.send('opacity', o);
 }
 // Pet pixel size for the current scale setting (10/30/50/70/100 % of PET_SIZE).
 function scaledSize(): number {
