@@ -326,6 +326,10 @@ function setHidden(h: boolean): void {
     if (h) p.window.hide();
     else p.window.show();
   }
+  // Keep the "숨기기" checkbox in sync with the real state. Without this, revealPets()
+  // (a relaunch that unhides the pet) left the tray checkbox stale-checked even though the
+  // pet was visible again — exactly the "재실행 시 체크되어 있음" report.
+  rebuildTray();
 }
 // Bring the pet back into view — used when a 2nd launch is attempted (or the user
 // thinks it closed): unhide and raise it to the top. Only a pet that is genuinely
@@ -500,10 +504,7 @@ function buildTrayMenu(): Menu {
       label: t(l, 'hide'),
       type: 'checkbox',
       checked: hidden,
-      click: () => {
-        setHidden(!hidden);
-        rebuildTray();
-      },
+      click: () => setHidden(!hidden), // setHidden rebuilds the tray itself
     },
     { label: t(l, 'quit'), click: () => app.quit() },
   ]);
