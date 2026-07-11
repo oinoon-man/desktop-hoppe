@@ -198,6 +198,11 @@ export class PetSim {
   }
 
   onRelease(): void {
+    // A drag can drop the pet past every display; clamp x back onto the nearest walkable
+    // display run so it can't be stranded off-screen — especially in "기다려" mode, where
+    // it won't wander back on its own.
+    const span = this.walkableSpan(this.centerX());
+    this.x = clamp(this.x, span.lo, span.hi);
     // Resting gently on a surface -> land there; otherwise fling.
     const s = this.supportUnder(this.centerX(), this.feetY());
     if (s && Math.abs(this.vy) < 220) {
