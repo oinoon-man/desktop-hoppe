@@ -23,12 +23,6 @@ const SHOW_PER_CHAR_MS = 145;
 // overwrite or hide them while pinned.
 const ANNOUNCE_PIN_MS = 60000;
 const AMBIENT_MODES: ReadonlySet<Mode> = new Set(['idle', 'walk', 'sleep']);
-// Target line width, in "full-width units" (a CJK glyph = 1). Japanese has no spaces,
-// so a long line has no natural wrap point and would spill out of the bubble — wrap it
-// ourselves. The bubble's max-width fits ~11 full-width glyphs; counting half-width
-// (Latin/digits) as 0.5 lets a Latin line fill the same width instead of collapsing
-// into a too-narrow bubble at 11 characters.
-const BUBBLE_MAX_UNITS = 11;
 
 /** A dialogue line normalized to a common shape (see DialogueLine in types). */
 interface Line {
@@ -148,7 +142,7 @@ export class SpeechController {
   }
 
   private show(text: string, isThought = false, durationOverride = 0): void {
-    this.bubble.textContent = wrapText(text);
+    this.bubble.textContent = applyBreaks(text);
     // 속마음 lines get the alternate bubble skin (colors/gradient in index.html).
     this.bubble.classList.toggle('thought', isThought);
     this.bubble.classList.add('show');
@@ -185,57 +179,14 @@ function toLine(entry: DialogueLine): Line {
   return { text: entry.text, thought: entry.thought === true };
 }
 
-/** Visual width of one code point in "full-width units": CJK/Hangul/Kana and full-width
- *  forms count as 1, everything else (Latin, digits, punctuation) as 0.5. */
-function charUnits(ch: string): number {
-  return /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/.test(
-    ch,
-  )
-    ? 1
-    : 0.5;
-}
-function unitsOf(chars: string[]): number {
-  let n = 0;
-  for (const c of chars) n += charUnits(c);
-  return n;
-}
 /**
- * Wrap `text` so no rendered line exceeds `max` full-width units. Wraps on spaces where
- * possible (Korean/English keep whole words) and hard-breaks a run with no spaces
- * (Japanese) at the width limit, so it can't overflow the bubble. Widths are counted
- * per script (see `charUnits`) so a Latin line fills the bubble instead of collapsing
- * at 11 half-width chars. Existing newlines are preserved; counts by code point so
- * surrogate-pair chars (emoji) aren't split.
+ * Line breaks are authored, not automatic: a dialogue line wraps only where the writer
+ * puts one. In dialogue.json use a real newline (JSON "\n") — or a literal backslash-n,
+ * normalized here. With no break the line stays on one line and the bubble grows
+ * horizontally instead (see #bubble: white-space: pre, no max-width).
  */
-function wrapText(text: string, max = BUBBLE_MAX_UNITS): string {
-  const lines: string[] = [];
-  for (const para of text.split('\n')) {
-    let line: string[] = [];
-    const flush = (): void => {
-      if (line.length) lines.push(line.join(''));
-      line = [];
-    };
-    for (const word of para.split(/\s+/).filter(Boolean)) {
-      let w = [...word];
-      // Hard-break a single run wider than a line (spaceless CJK, long URLs).
-      while (unitsOf(w) > max) {
-        let take = 0;
-        for (let acc = 0; take < w.length && acc + charUnits(w[take]) <= max; take++) acc += charUnits(w[take]);
-        take = Math.max(1, take);
-        flush();
-        lines.push(w.slice(0, take).join(''));
-        w = w.slice(take);
-      }
-      if (line.length === 0) line = w;
-      else if (unitsOf(line) + 0.5 + unitsOf(w) <= max) line = [...line, ' ', ...w];
-      else {
-        flush();
-        line = w;
-      }
-    }
-    flush();
-  }
-  return lines.join('\n');
+function applyBreaks(text: string): string {
+  return text.replace(/\\n/g, '\n');
 }
 
 function shuffle<T>(arr: T[]): T[] {

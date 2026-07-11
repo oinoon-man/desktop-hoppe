@@ -84,11 +84,11 @@
          (fill). Right/bottom anchored so the tail stays over the pet's head. */
       #bubble {
         position: absolute;
-        /* Left-anchored (NOT window-right, which drifts when the window grows). The pet
+        /* Centered over the pet's head so the bubble grows evenly to both sides. The pet
            is scaled + pinned bottom-center, so its head sits at x≈150+32·pscale, y≈196·
-           pscale from the window bottom; the tail (right:22 of this right-aligned bubble)
-           lands there. The bubble body stays full-size (readable at any pet size). */
-        left: calc(172px + 32px * var(--pscale, 1));
+           pscale from the window bottom; anchor there and translateX(-50%) so the tail
+           (centered below) stays over the head as the bubble widens with the text. */
+        left: calc(150px + 32px * var(--pscale, 1));
         bottom: calc(196px * var(--pscale, 1));
         isolation: isolate;
         display: inline-flex;
@@ -96,7 +96,8 @@
         justify-content: center;
         box-sizing: border-box;
         min-width: 58px;
-        max-width: 210px; /* fits ~11 full-width (JA/KO) chars per line */
+        /* No max-width: a line grows the bubble horizontally. Authors insert breaks with
+           \n in dialogue.json (see applyBreaks); without one the line just stays wide. */
         padding: 9px 15px;
         background: rgba(252, 253, 255, 0.97);
         border: 2px solid #ccd5de;
@@ -104,16 +105,13 @@
         color: #4a4038;
         font: 400 15px/1.45 var(--ui-font);
         text-align: center;
-        white-space: pre-wrap;
-        word-break: keep-all;
-        overflow-wrap: anywhere; /* last-resort break so text never spills the bubble */
+        white-space: pre; /* honor authored \n only — no automatic wrapping */
         box-shadow: 0 4px 11px rgba(70, 85, 100, 0.2);
         opacity: 0;
-        /* scale(--pscale) shrinks the whole bubble (font + frame) with the pet. The text
-           still LAYS OUT in the full-size (300px) window first, so it wraps normally and
-           only then shrinks — no 1-char vertical collapse. Origin ~tail (over the head). */
-        transform: translateX(-100%) translateY(6px) scale(calc(0.94 * var(--pscale, 1)));
-        transform-origin: 80% 120%;
+        /* scale(--pscale) shrinks the whole bubble (font + frame) with the pet. Origin is
+           the tail (bottom-center, over the head), so it scales toward the head. */
+        transform: translateX(-50%) translateY(6px) scale(calc(0.94 * var(--pscale, 1)));
+        transform-origin: 50% 120%;
         pointer-events: none;
         transition:
           opacity 180ms ease,
@@ -124,7 +122,8 @@
         content: "";
         position: absolute;
         z-index: -1;
-        right: 22px;
+        left: 50%;
+        margin-left: -9px; /* center the 18px-wide tail under the bubble (over the head) */
         bottom: -12px;
         border-left: 9px solid transparent;
         border-right: 9px solid transparent;
@@ -134,7 +133,8 @@
         /* tail fill (over the body edge, hides the seam) */
         content: "";
         position: absolute;
-        right: 25px;
+        left: 50%;
+        margin-left: -6px; /* center the 12px-wide fill triangle */
         bottom: -7px;
         border-left: 6px solid transparent;
         border-right: 6px solid transparent;
@@ -142,7 +142,7 @@
       }
       #bubble.show {
         opacity: 1;
-        transform: translateX(-100%) translateY(0) scale(var(--pscale, 1));
+        transform: translateX(-50%) translateY(0) scale(var(--pscale, 1));
       }
 
       /* --- 속마음 (inner-thoughts) bubble variant ------------------------------
@@ -179,14 +179,16 @@
         /* larger circle, closer to the body */
         width: 12px;
         height: 12px;
-        right: 26px;
+        left: 50%;
+        margin-left: -6px;
         bottom: -10px;
       }
       #bubble.thought::before {
         /* smaller circle, trailing further away */
         width: 7px;
         height: 7px;
-        right: 18px;
+        left: 50%;
+        margin-left: -3.5px;
         bottom: -23px;
       }
     </style>
