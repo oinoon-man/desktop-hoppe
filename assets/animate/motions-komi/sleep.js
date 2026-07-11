@@ -303,14 +303,14 @@ if (reversed == null) { reversed = false; }
 
 	// 심볼_8
 	this.instance = new lib.심볼8("synched",0);
-	this.instance.setTransform(163.4,153.55,0.795,0.795,0,0,0,130.9,118.6);
+	this.instance.setTransform(163.4,205.95,0.795,0.795,0,0,0,130.9,118.6);
 
 	this.timeline.addTween(cjs.Tween.get(this.instance).wait(40));
 
 	this._renderFirstFrame();
 
 }).prototype = p = new lib.AnMovieClip();
-p.nominalBounds = new cjs.Rectangle(209.4,209.3,58.20000000000002,38.5);
+p.nominalBounds = new cjs.Rectangle(209.4,261.7,58.20000000000002,38.5);
 // library properties:
 lib.properties = {
 	id: '098A1D5E5C387D439FC122319ADFF2EA',

@@ -367,14 +367,14 @@ if (reversed == null) { reversed = false; }
 
 	// 심볼_15
 	this.instance = new lib.심볼15("synched",0);
-	this.instance.setTransform(152.45,152.5,1,1,0,0,0,106.4,140.6);
+	this.instance.setTransform(152.45,164.5,1,1,0,0,0,106.4,140.6);
 
 	this.timeline.addTween(cjs.Tween.get(this.instance).wait(90));
 
 	this._renderFirstFrame();
 
 }).prototype = p = new lib.AnMovieClip();
-p.nominalBounds = new cjs.Rectangle(196.1,161.9,62.79999999999998,131.20000000000002);
+p.nominalBounds = new cjs.Rectangle(196.1,173.9,62.79999999999998,131.20000000000002);
 // library properties:
 lib.properties = {
 	id: 'FB793098F60F5046B84187C6DA851B39',
