@@ -38,6 +38,12 @@ function applyChannel(beta: boolean): void {
   autoUpdater.allowPrerelease = beta;
 }
 
+// A prerelease build (…-beta.N) always tracks the beta channel, so a beta tester keeps
+// getting newer betas without toggling the setting; stable builds honor the opt-in only.
+function wantsBeta(optIn: boolean): boolean {
+  return optIn || app.getVersion().includes('-');
+}
+
 // A missing manifest (HTTP 404) is EXPECTED where no update feed is published for this
 // build yet: macOS/Linux before a stable v2 release (the latest stable, v1.0.7, ships only
 // Windows manifests), or the beta channel before its first beta.yml. That isn't an error to
@@ -54,7 +60,7 @@ function logUpdaterError(e: unknown): void {
 /** Switch channel at runtime (from the "베타 업데이트 받기" toggle) and re-check. */
 export function setUpdateChannel(beta: boolean): void {
   if (!app.isPackaged) return;
-  applyChannel(beta);
+  applyChannel(wantsBeta(beta));
   autoUpdater.checkForUpdates().catch(() => {}); // failures surface via the 'error' handler
 }
 
@@ -66,7 +72,7 @@ export function initAutoUpdater(hooks: UpdaterHooks, beta = false): void {
     return;
   }
 
-  applyChannel(beta); // stable → latest.yml, tester → beta.yml (opt-in)
+  applyChannel(wantsBeta(beta)); // stable → latest.yml; tester opt-in OR any prerelease build → beta.yml
 
   // Download automatically, but DO NOT auto-restart: we let the user apply it
   // via the tray, and install silently on the next normal quit.
