@@ -215,6 +215,7 @@ function createPet(index: number, character: CharacterId): Pet {
     sim.start();
     sim.setPlatforms(settings.climbing ? enumerateShelves() : []);
     sim.setStay(settings.stay);
+    sim.setArtSize(scaledSize()); // grab region tracks the scaled art, not the 300px window
     pet.sim = sim;
   });
 
@@ -302,10 +303,12 @@ function scaledSize(): number {
 }
 function applySize(): void {
   const s = scaledSize();
-  // The window stays PET_SIZE; only the art inside scales. Just push the intended art
-  // size to the renderer — no window resize, no sim size change (feet/grab stay put).
+  // The window stays PET_SIZE; only the art inside scales. Push the intended art size to
+  // the renderer (draws the art) AND to the sim (so the grab hit-test matches the scaled
+  // art). No window resize — the feet stay pinned to the window bottom.
   for (const p of pets) {
     if (!p.window.isDestroyed()) p.window.webContents.send('pet-size', s);
+    p.sim?.setArtSize(s);
   }
 }
 function applyStay(): void {

@@ -52,6 +52,8 @@ interface Support {
 export class PetSim {
   private readonly win: BrowserWindow;
   private size: number; // pet px (== window size); adjustable at runtime
+  private artSize: number; // visible art px (<= size); the grab hit-test tracks THIS so the
+  //                         clickable region matches the scaled pet, not the fixed window.
   private stay = false; // "기다려!": don't wander (stand/sleep only)
 
   private x = 0;
@@ -95,6 +97,13 @@ export class PetSim {
   constructor(win: BrowserWindow, size: number) {
     this.win = win;
     this.size = size;
+    this.artSize = size; // full size until main pushes the scaled size
+  }
+
+  /** Visible art size in px (from the size setting). The grab hit-test uses this so the
+   *  clickable region matches the scaled pet — not the fixed 300px window. */
+  setArtSize(px: number): void {
+    this.artSize = px > 0 ? Math.min(px, this.size) : this.size;
   }
 
   start(): void {
@@ -314,8 +323,14 @@ export class PetSim {
 
   private cursorOverPet(): boolean {
     const c = screen.getCursorScreenPoint();
-    const nx = (c.x - this.x - this.size * GRAB_CX) / (this.size * GRAB_RX);
-    const ny = (c.y - this.y - this.size * GRAB_CY) / (this.size * GRAB_RY);
+    // The art is scaled to artSize and pinned bottom-center of the (fixed) window, so the
+    // grab ellipse is measured from the art box — not the whole window. At 100% artSize ==
+    // size and this reduces to the old window-based test.
+    const s = this.artSize;
+    const left = this.x + (this.size - s) / 2; // art centered horizontally in the window
+    const top = this.y + (this.size - s); // …and bottom-aligned
+    const nx = (c.x - left - s * GRAB_CX) / (s * GRAB_RX);
+    const ny = (c.y - top - s * GRAB_CY) / (s * GRAB_RY);
     return nx * nx + ny * ny <= 1;
   }
   private setIgnore(next: boolean): void {
