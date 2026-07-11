@@ -1,0 +1,41 @@
+{
+  "greeting": [
+    "Komi's here!",
+    "Hi, Cult Leader!",
+    "Komi came too~",
+    "Hehe, it's Komi!"
+  ],
+  "idle": [
+    "So bored...",
+    "What's Butter up to?",
+    "What should I play today?",
+    "Komi's thinking.",
+    "My paws are all tingly~",
+    "Maybe a little nap..."
+  ],
+  "walk": [
+    "Komi, move out!",
+    "Let's go this way?",
+    "Pitter-patter...",
+    "Anything fun around here~",
+    "Adventure time!"
+  ],
+  "sleep": [
+    { "text": "Zzz…", "thought": true },
+    { "text": "Komi's dreaming...", "thought": true },
+    { "text": "Snooze...", "thought": true },
+    { "text": "Five more minutes...", "thought": true }
+  ],
+  "drag": [
+    "Whoa!",
+    "Where are you taking me?"
+  ],
+  "fall": [
+    "Waaah-"
+  ],
+  "land": [
+    "Tap!",
+    "Komi sticks the landing!",
+    "Hehe, didn't hurt!"
+  ]
+}

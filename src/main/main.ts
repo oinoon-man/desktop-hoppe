@@ -51,7 +51,7 @@ let hidden = false; // 숨기기 toggle (session-only, not persisted)
 let opacitySaveTimer: ReturnType<typeof setTimeout> | null = null;
 let settings: Settings;
 let manifest: PetManifest = { clips: {} };
-let dialogue: PetDialogue = {};
+let dialogues: Record<CharacterId, PetDialogue> = {} as Record<CharacterId, PetDialogue>;
 let climbingAvailable = false;
 let climbtestDropped = false;
 // setLoginItemSettings is macOS/Windows only; Linux autostart would need a
@@ -111,11 +111,28 @@ function dialogueFile(locale: Locale): string {
   return locale === 'ko' ? 'dialogue.json' : `dialogue.${locale}.json`;
 }
 
-function loadDialogue(locale: Locale): PetDialogue {
-  const d = sanitizeDialogue(readJson<PetDialogue>(path.join('assets', 'data', dialogueFile(locale)), {}));
-  // Fall back to the Korean pool if a locale file is missing or empty.
-  if (Object.keys(d).length > 0 || locale === 'ko') return d;
-  return sanitizeDialogue(readJson<PetDialogue>(path.join('assets', 'data', 'dialogue.json'), {}));
+// Each character speaks from its own pool. Butter's lives at assets/data/; every other
+// character's lives under assets/data/<id>/, so Komi has separate lines from Butter.
+function dialogueDir(character: CharacterId): string {
+  return character === 'butter' ? path.join('assets', 'data') : path.join('assets', 'data', character);
+}
+
+function loadDialogue(locale: Locale, character: CharacterId): PetDialogue {
+  const dir = dialogueDir(character);
+  const read = (file: string): PetDialogue =>
+    sanitizeDialogue(readJson<PetDialogue>(path.join(dir, file), {}));
+  let d = read(dialogueFile(locale));
+  // Fall back to this character's Korean pool if its locale file is missing/empty…
+  if (Object.keys(d).length === 0 && locale !== 'ko') d = read('dialogue.json');
+  // …and to Butter's pool if a non-Butter character has no lines at all (never mute).
+  if (Object.keys(d).length === 0 && character !== 'butter') return loadDialogue(locale, 'butter');
+  return d;
+}
+
+function loadAllDialogues(locale: Locale): Record<CharacterId, PetDialogue> {
+  const out = {} as Record<CharacterId, PetDialogue>;
+  for (const id of Object.keys(CHARACTERS) as CharacterId[]) out[id] = loadDialogue(locale, id);
+  return out;
 }
 
 // --- pets ------------------------------------------------------------------
@@ -183,7 +200,9 @@ function createPet(index: number, character: CharacterId): Pet {
   window.webContents.on('did-finish-load', () => {
     if (window.isDestroyed()) return;
     window.webContents.send('manifest', manifest);
-    window.webContents.send('dialogue', dialogue);
+    const pool = dialogues[pet.character] ?? {};
+    window.webContents.send('dialogue', pool);
+    console.log('[dialogue]', pet.character, Object.values(pool).reduce((n, a) => n + a.length, 0), 'lines');
     window.webContents.send('set-speech', settings.speech);
     window.webContents.send('set-locale', settings.locale);
     window.webContents.send('pet-size', scaledSize());
@@ -491,11 +510,11 @@ function setLocale(loc: Locale): void {
   if (loc === settings.locale) return;
   settings.locale = loc;
   saveSettings(settings);
-  dialogue = loadDialogue(loc);
+  dialogues = loadAllDialogues(loc);
   for (const p of pets) {
     if (p.window.isDestroyed()) continue;
     p.window.webContents.send('set-locale', loc);
-    p.window.webContents.send('dialogue', dialogue);
+    p.window.webContents.send('dialogue', dialogues[p.character] ?? {});
   }
   if (creditsWindow && !creditsWindow.isDestroyed()) loadCredits(creditsWindow);
   if (opacityWindow && !opacityWindow.isDestroyed()) loadOpacity(opacityWindow);
@@ -679,7 +698,7 @@ app.whenReady().then(() => {
   if (!gotLock) return;
   settings = loadSettings();
   manifest = readJson<PetManifest>(path.join('assets', 'prototype', 'manifest.json'), { clips: {} });
-  dialogue = loadDialogue(settings.locale);
+  dialogues = loadAllDialogues(settings.locale);
   applyAutostart();
 
   climbingAvailable = initWindows();
