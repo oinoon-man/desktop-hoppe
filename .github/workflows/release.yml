@@ -5,6 +5,10 @@ name: Release
 # own manifest in that release (latest.yml / latest-mac.yml / latest-linux.yml), so a
 # single version bump + tag covers every platform — no per-platform release needed.
 #
+# Channels: a clean tag (v2.0.0) publishes as `latest` (stable). A prerelease tag
+# (v2.0.0-beta.1) publishes as a GitHub prerelease AND renames its manifests to beta.yml
+# so only opt-in beta-channel clients update to it; stable clients never see it.
+#
 # Flow: bump "version" in package.json → commit & push → `git tag vX.Y.Z && git push --tags`.
 # (Use THIS instead of `npm run release` for multi-platform; don't run both for one tag.)
 #
@@ -76,6 +80,13 @@ jobs:
           # that keeps the live build safe while betas are flying.
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then
             RELEASE_FLAG="--prerelease"
+            # Move the update manifests onto the BETA channel: beta-channel clients fetch
+            # beta.yml, so this lets them auto-update to the prerelease, while stable clients
+            # (which read latest.yml from the newest FULL release, v1.0.7) never see it. The
+            # yml is channel-agnostic (version + file hashes only), so a rename is enough.
+            for y in dist/latest.yml dist/latest-mac.yml dist/latest-linux.yml; do
+              [ -f "$y" ] && mv "$y" "${y/latest/beta}"
+            done
           else
             RELEASE_FLAG="--latest"
           fi
