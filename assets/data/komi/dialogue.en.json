@@ -1,7 +1,7 @@
 {
   "greeting": [
     "Kommy's here...",
-    "Hey, Cult Leader.",
+    "Hey, Master.",
     "What'd you call me for?"
   ],
   "idle": [
@@ -9,19 +9,19 @@
     "Don't bug me.",
     "Kommy's thinking.",
     "What're we doing today?",
-    "Is this the Cult Leader's computer?"
+    "Is this the Master's computer?"
   ],
   "walk": [
     "Isn't there somewhere to nap?",
-    "Kommy does whatever she wants.",
+    "Kommy does whatever\nshe wants.",
     "Pitter-patter...",
-    "Looks like something's over there.",
+    "Looks like something's\nover there.",
     "Where's the kibble?"
   ],
   "sleep": [
     { "text": "Zzz…", "thought": true },
-    { "text": "Liberation of the working class...", "thought": true },
-    { "text": "A resort all to myself...", "thought": true },
+    { "text": "Liberation of the\nworking class...", "thought": true },
+    { "text": "A resort all\nto myself...", "thought": true },
     { "text": "Nom nom...", "thought": true }
   ],
   "drag": [
