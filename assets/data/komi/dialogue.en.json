@@ -1,41 +1,39 @@
 {
   "greeting": [
-    "Komi's here!",
-    "Hi, Cult Leader!",
-    "Komi came too~",
-    "Hehe, it's Komi!"
+    "Kommy's here...",
+    "Hey, Cult Leader.",
+    "What'd you call me for?"
   ],
   "idle": [
-    "So bored...",
-    "What's Butter up to?",
-    "What should I play today?",
-    "Komi's thinking.",
-    "My paws are all tingly~",
-    "Maybe a little nap..."
+    "So sleepy...",
+    "Don't bug me.",
+    "Kommy's thinking.",
+    "What're we doing today?",
+    "Is this the Cult Leader's computer?"
   ],
   "walk": [
-    "Komi, move out!",
-    "Let's go this way?",
+    "Isn't there somewhere to nap?",
+    "Kommy does whatever she wants.",
     "Pitter-patter...",
-    "Anything fun around here~",
-    "Adventure time!"
+    "Looks like something's over there.",
+    "Where's the kibble?"
   ],
   "sleep": [
     { "text": "Zzz…", "thought": true },
-    { "text": "Komi's dreaming...", "thought": true },
-    { "text": "Snooze...", "thought": true },
-    { "text": "Five more minutes...", "thought": true }
+    { "text": "Liberation of the working class...", "thought": true },
+    { "text": "A resort all to myself...", "thought": true },
+    { "text": "Nom nom...", "thought": true }
   ],
   "drag": [
-    "Whoa!",
-    "Where are you taking me?"
+    "Nyeh?!",
+    "Mrrp!",
+    "Nyaowk!"
   ],
   "fall": [
-    "Waaah-"
+    "Nyaaeng-"
   ],
   "land": [
-    "Tap!",
-    "Komi sticks the landing!",
-    "Hehe, didn't hurt!"
+    "Put me down gently!",
+    "Safe landing!"
   ]
 }
