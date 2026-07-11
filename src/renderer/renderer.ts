@@ -131,6 +131,8 @@ function loadMotionScripts(base: string): Promise<void> {
 // otherwise fall back to the frame/placeholder canvas loop.
 const cj = new CreateJSAnimator(canvas);
 let cjActive = false;
+cj.setFlip(character.flip); // mirror any motions this character authored facing the other way
+if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __cj: unknown }).__cj = cj;
 
 loadMotionScripts(charBase)
   .then(() => cj.init(charBase))

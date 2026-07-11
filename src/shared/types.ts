@@ -14,11 +14,15 @@ export interface CharacterDef {
   motionsDir: string;
   /** Display name for menus. */
   name: string;
+  /** Motions whose art is authored facing the OPPOSITE way from the baseline (which is
+   *  left) — these get an extra horizontal mirror so they face the right way. */
+  flip?: Mode[];
 }
 
 export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   butter: { id: 'butter', motionsDir: 'motions', name: 'Butter' },
-  komi: { id: 'komi', motionsDir: 'motions-komi', name: 'Komi' },
+  // Komi's standing (idle) + sleep art is authored facing the other way — mirror them.
+  komi: { id: 'komi', motionsDir: 'motions-komi', name: 'Komi', flip: ['idle', 'sleep'] },
 };
 
 export function isCharacterId(v: unknown): v is CharacterId {

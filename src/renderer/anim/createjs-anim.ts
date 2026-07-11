@@ -40,6 +40,7 @@ export class CreateJSAnimator {
   private lastLandAt = 0; // debounce crouch restarts on rapid re-lands
   private renderPaused = false; // Ticker detached while the window is hidden
   private petSize = 0; // intended pet px from main; scale the art from this, not the window
+  private flip = new Set<Mode>(); // motions whose art is authored facing the other way
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -162,17 +163,21 @@ export class CreateJSAnimator {
     if (this.stage) this.stage.update(); // repaint now, don't wait for the next tick
   }
 
-  // The art is authored facing LEFT, so the baseline is mirrored to make it face
-  // right; the sim's facing then flips it. `sleep` is exempt — it always keeps
-  // its authored orientation (no left/right mirroring).
+  // The baseline art is authored facing LEFT, so it's mirrored to make it face right and
+  // the sim's facing then flips it. Some characters author a motion facing the other way
+  // (`flip`); that inverts the mirror. `sleep` is exempt from facing — it keeps a fixed
+  // orientation (but `flip` still mirrors a sleep authored the other way).
   private applyFacing(root: Any, mode: Mode): void {
+    const flipped = this.flip.has(mode);
     if (mode === 'sleep') {
-      root.scaleX = 1;
-      root.x = 0;
+      root.scaleX = flipped ? -1 : 1;
+      root.x = flipped ? this.width : 0;
       return;
     }
-    root.scaleX = this.facing < 0 ? 1 : -1;
-    root.x = this.facing < 0 ? 0 : this.width;
+    // Mirror when the way we want to face differs from the way the art is authored.
+    const mirror = this.facing >= 0 !== flipped;
+    root.scaleX = mirror ? -1 : 1;
+    root.x = mirror ? this.width : 0;
   }
 
   /** Swap to the composition for `clip` (restarts it from frame 0). */
@@ -229,6 +234,21 @@ export class CreateJSAnimator {
    *  window, which drifts/grows on fractional-DPI displays. */
   setPetSize(size: number): void {
     this.petSize = size > 0 ? size : this.width;
+  }
+
+  /** Motions whose art is authored facing the opposite way (mirror them). Set before init. */
+  setFlip(modes: Mode[] | undefined): void {
+    this.flip = new Set(modes);
+  }
+
+  /** Debug: each loaded motion's rendered bounds (to spot art that overflows the frame). */
+  getClipBounds(): Record<string, { x: number; y: number; w: number; h: number } | null> {
+    const out: Record<string, { x: number; y: number; w: number; h: number } | null> = {};
+    for (const [mode, clip] of this.clips) {
+      const b = clip.root.nominalBounds || (clip.root.getBounds && clip.root.getBounds());
+      out[mode] = b ? { x: b.x, y: b.y, w: b.width, h: b.height } : null;
+    }
+    return out;
   }
 
   private applyScale(): void {
