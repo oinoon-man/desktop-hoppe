@@ -5,7 +5,14 @@ import { PetSim } from './sim';
 import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom, isRemoteSession } from './windows';
 import { fetchDevlogList, fetchDevlogPost } from './devlog';
 import { loadSettings, saveSettings, MAX_PETS, SIZE_STEPS, clampOpacity, type Settings } from './settings';
-import { initAutoUpdater, isUpdateReady, updateReadyVersion, quitAndInstall, setUpdateChannel } from './updater';
+import {
+  initAutoUpdater,
+  isUpdateReady,
+  updateReadyVersion,
+  quitAndInstall,
+  setUpdateChannel,
+  canSelfUpdate,
+} from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale, type UIKey } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
@@ -184,17 +191,24 @@ function createPet(index: number, character: CharacterId): Pet {
   if (hidden) window.hide();
   window.webContents.on('console-message', (e) => console.log('[renderer]', e.message));
 
-  // A transparent, frameless window creeps larger every paint on fractional-DPI
-  // displays (125/150/175 %) — an Electron/Chromium bug. Unchecked, the window (and
-  // its canvas + the right-anchored bubble) grows without bound until it fills/leaves
-  // the screen and RAM balloons. Snap it back to the intended size whenever it drifts.
+  // A transparent, frameless window creeps larger every paint on fractional-DPI displays
+  // (125/150/175 %) — an Electron/Chromium bug. Guard BOTH sizes: the outer window AND the
+  // CONTENT (viewport). The content can drift on its own while the outer window sits at
+  // 300px, and anything the renderer positions against the viewport then slides with it —
+  // that's what walked the pet out of view while the bubble stayed put. (The renderer is
+  // also structurally immune now via the fixed #stage box; this is belt-and-suspenders,
+  // and it can only help when a 'resize' actually fires.)
   let enforcingSize = false;
   window.on('resize', () => {
     if (enforcingSize || window.isDestroyed()) return;
     const want = PET_SIZE; // the pet window is always PET_SIZE (the art scales inside)
     const [w, h] = window.getSize();
-    if (Math.abs(w - want) > 1 || Math.abs(h - want) > 1) {
+    const [cw, ch] = window.getContentSize();
+    const outerDrift = Math.abs(w - want) > 1 || Math.abs(h - want) > 1;
+    const contentDrift = Math.abs(cw - want) > 1 || Math.abs(ch - want) > 1;
+    if (outerDrift || contentDrift) {
       enforcingSize = true;
+      if (contentDrift) window.setContentSize(want, want);
       window.setSize(want, want);
       setTimeout(() => (enforcingSize = false), 0);
     }
@@ -381,7 +395,11 @@ function buildTrayMenu(): Menu {
   const l = settings.locale;
   const updateItems: Electron.MenuItemConstructorOptions[] = !SILENT_UPDATES && isUpdateReady()
     ? [
-        { label: t(l, 'updateNow').replace('{v}', updateReadyVersion()), click: () => quitAndInstall() },
+        {
+          // macOS can't self-install, so there the item opens the download page instead.
+          label: t(l, canSelfUpdate() ? 'updateNow' : 'updateDownload').replace('{v}', updateReadyVersion()),
+          click: () => quitAndInstall(),
+        },
         { type: 'separator' },
       ]
     : [];

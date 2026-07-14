@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
@@ -13,6 +13,14 @@ import path from 'node:path';
 
 const INITIAL_DELAY_MS = 8000;
 const RECHECK_MS = 6 * 60 * 60 * 1000; // re-check every 6h for long-running sessions
+const RELEASES_URL = 'https://github.com/oinoon-man/desktop-hoppe/releases/latest';
+
+/** Whether this platform can install an update in place. macOS cannot: the build is only
+ *  ad-hoc signed (no Apple Developer ID) and Squirrel.Mac refuses an update it can't verify,
+ *  so there we announce the new version and open the download page instead. */
+export function canSelfUpdate(): boolean {
+  return process.platform !== 'darwin';
+}
 
 export interface UpdaterHooks {
   /** Fired once the new version is downloaded and ready to install. */
@@ -76,11 +84,24 @@ export function initAutoUpdater(hooks: UpdaterHooks, beta = false): void {
 
   // Download automatically, but DO NOT auto-restart: we let the user apply it
   // via the tray, and install silently on the next normal quit.
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // EXCEPT on macOS: the app is only ad-hoc signed (no Apple Developer ID), and Squirrel.Mac
+  // refuses to install an update whose signature it can't validate — the download would just
+  // burn bandwidth and then fail. So don't self-update there; announce the new version and
+  // send the user to the download page instead (see canSelfUpdate + the tray item).
+  autoUpdater.autoDownload = canSelfUpdate();
+  autoUpdater.autoInstallOnAppQuit = canSelfUpdate();
 
   autoUpdater.on('checking-for-update', () => console.log('[updater] checking for update…'));
-  autoUpdater.on('update-available', (info) => console.log(`[updater] update available: ${info.version}`));
+  autoUpdater.on('update-available', (info) => {
+    console.log(`[updater] update available: ${info.version}`);
+    // macOS never reaches 'update-downloaded' (no self-update), so treat "available" as the
+    // signal: the pet announces it and the tray offers the download page.
+    if (!canSelfUpdate()) {
+      ready = true;
+      readyVersion = info.version;
+      hooks.onUpdateReady(info.version);
+    }
+  });
   autoUpdater.on('update-not-available', () => console.log('[updater] up to date'));
   autoUpdater.on('error', logUpdaterError);
   autoUpdater.on('download-progress', (p) => console.log(`[updater] downloading ${Math.round(p.percent)}%`));
@@ -138,9 +159,14 @@ export function killOtherInstances(): void {
   }
 }
 
-/** Quit and install the downloaded update now (used by the tray item). */
+/** Apply the update now (used by the tray item). On macOS there is no in-place install —
+ *  open the download page so the user can grab the new build themselves. */
 export function quitAndInstall(): void {
   if (!ready) return;
+  if (!canSelfUpdate()) {
+    void shell.openExternal(RELEASES_URL);
+    return;
+  }
   killOtherInstances(); // free any file lock so the install can't silently fail
   // isSilent = false (show installer progress), isForceRunAfter = true (relaunch).
   autoUpdater.quitAndInstall(false, true);

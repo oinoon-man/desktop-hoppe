@@ -58,6 +58,12 @@ const UI = {
     ja: '✨ 今すぐアップデート (v{v})',
     en: '✨ Update now (v{v})',
   },
+  // macOS can't self-install (ad-hoc signature) — the item opens the download page instead.
+  updateDownload: {
+    ko: '✨ 새 버전 받기 (v{v})',
+    ja: '✨ 新バージョンを入手 (v{v})',
+    en: '✨ Get the new version (v{v})',
+  },
   updateAnnounce: { ko: '업데이트가 있대요!', ja: 'アップデートがあるって！', en: 'There’s an update!' },
   updateAnnounceKomi: { ko: '업데이트가 있대, 교주.', ja: 'アップデートあるって、教主。', en: 'There’s an update, master.' },
   // Credits window

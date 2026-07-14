@@ -43,9 +43,26 @@
         -webkit-user-select: none;
         cursor: default;
       }
+      /* EVERYTHING the pet window draws lives in this fixed 300×300 box, anchored to the
+         window's top-left. Why: a transparent frameless window's CONTENT (viewport) can
+         creep larger on fractional-DPI displays even while the OUTER window is held at
+         300px — and anything positioned against the viewport (left:50%, bottom:0) then
+         drifts with it. That is exactly the reported bug: the pet slid sideways out of
+         view while the px-anchored bubble stayed behind, and eventually vanished once its
+         50% point left the visible 300px. Because #stage is a fixed-size positioned box,
+         its children resolve % / bottom against IT, not the viewport — so no amount of
+         viewport growth can move them. */
+      #stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 300px; /* == PET_SIZE (the authored/window size) */
+        height: 300px;
+        overflow: hidden;
+      }
       #pet {
         /* The canvas is sized to the pet (renderer sets width/height) and pinned to the
-           bottom-center of the larger window, so the feet stay on the floor and the
+           bottom-center of the fixed stage, so the feet stay on the floor and the
            speech bubble has room above. width/height come from the renderer. */
         position: absolute;
         left: 50%;
@@ -194,9 +211,13 @@
     </style>
   </head>
   <body>
-    <canvas id="pet"></canvas>
-    <div id="placeholder"></div>
-    <div id="bubble"></div>
+    <!-- Fixed 300×300 stage: pins every child to the window's real top-left so a growing
+         viewport (fractional-DPI) can't drift the pet away from the bubble. See #stage. -->
+    <div id="stage">
+      <canvas id="pet"></canvas>
+      <div id="placeholder"></div>
+      <div id="bubble"></div>
+    </div>
     <script src="./assets/vendor/createjs.min.js"></script>
     <!-- The six Adobe Animate (CreateJS) motion compositions are loaded dynamically by
          renderer.js from the selected character's folder (assets/animate/<dir>/), so the
