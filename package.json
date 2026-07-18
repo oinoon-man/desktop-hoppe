@@ -12,7 +12,9 @@
     "debug": "npm run build && electron . --debug",
     "pack": "npm run build && electron-builder --dir",
     "dist:win": "npm run build && electron-builder --win",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "check": "npm run typecheck && npm test"
   },
   "build": {
     "appId": "com.hoppe.desktoppet",

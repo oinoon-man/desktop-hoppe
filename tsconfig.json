@@ -3,6 +3,9 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    // Tests run straight through Node's type stripping (`npm test`), which resolves ESM
+    // specifiers literally and so needs the .ts extension in their imports.
+    "allowImportingTsExtensions": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

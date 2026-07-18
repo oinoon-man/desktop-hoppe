@@ -1,5 +1,6 @@
 import { BrowserWindow, screen } from 'electron';
 import type { Mode, PetState, Rect } from '../shared/types';
+import * as geo from './geometry';
 
 // ---------------------------------------------------------------------------
 // PetSim — the pet's simulation, run in the MAIN process in screen coordinates.
@@ -239,48 +240,27 @@ export class PetSim {
   }
   // Horizontal roaming spans the union of every display (leftmost .. rightmost).
   private minX(): number {
-    let m = Infinity;
-    for (const d of screen.getAllDisplays()) m = Math.min(m, d.workArea.x);
-    return m;
+    return geo.minX(this.displayAreas());
   }
   private maxX(): number {
-    let m = -Infinity;
-    for (const d of screen.getAllDisplays()) m = Math.max(m, d.workArea.x + d.workArea.width);
-    return m - this.size;
+    return geo.maxX(this.displayAreas(), this.size);
   }
   // The contiguous horizontal run of *adjacent* display work areas that includes the
   // display under `cx` (or the nearest one when `cx` is in a gap). The pet wanders and
   // steps across seams within this run, but never targets the void between non-adjacent
   // monitors — walking into that gap is what wedged it in a multi-monitor "dead zone".
-  private walkableSpan(cx: number): { lo: number; hi: number } {
-    const areas = screen.getAllDisplays().map((d) => d.workArea).sort((a, b) => a.x - b.x);
-    if (areas.length === 0) {
-      const wa = this.workArea();
-      return { lo: wa.x, hi: wa.x + wa.width - this.size };
-    }
-    const x = Math.round(cx);
-    let idx = areas.findIndex((w) => x >= w.x && x < w.x + w.width);
-    if (idx < 0) {
-      // In a gap or off the outer edge: anchor to the nearest display by x-distance.
-      idx = 0;
-      let best = Infinity;
-      areas.forEach((w, i) => {
-        const dist = x < w.x ? w.x - x : x - (w.x + w.width);
-        if (dist < best) {
-          best = dist;
-          idx = i;
-        }
-      });
-    }
-    let lo = areas[idx].x;
-    let hi = areas[idx].x + areas[idx].width;
-    for (let i = idx - 1; i >= 0 && Math.abs(areas[i].x + areas[i].width - lo) <= 2; i--) lo = areas[i].x;
-    for (let i = idx + 1; i < areas.length && Math.abs(areas[i].x - hi) <= 2; i++) hi = areas[i].x + areas[i].width;
-    return { lo, hi: hi - this.size };
+  private walkableSpan(cx: number): geo.Span {
+    return geo.walkableSpan(this.displayAreas(), cx, this.size);
   }
 
+  /** Every display's work area, sorted by geometry.ts's contract (plain data). */
+  private displayAreas(): geo.Area[] {
+    return screen.getAllDisplays().map((d) => d.workArea);
+  }
+
+
   private spans(p: Rect, cx: number): boolean {
-    return cx >= p.x && cx <= p.x + p.w;
+    return geo.spansX(p, cx);
   }
 
   /** Highest surface whose top the feet cross while descending fPrev -> fNext. */
@@ -327,17 +307,13 @@ export class PetSim {
   // --- click-through (grabbable-while-moving) ------------------------------
 
   private cursorOverPet(): boolean {
-    const c = screen.getCursorScreenPoint();
-    // The art is scaled to artSize and pinned bottom-center of the (fixed) window, so the
-    // grab ellipse is measured from the art box — not the whole window. At 100% artSize ==
-    // size and this reduces to the old window-based test.
-    const s = this.artSize;
-    const left = this.x + (this.size - s) / 2; // art centered horizontally in the window
-    const top = this.y + (this.size - s); // …and bottom-aligned
-    const nx = (c.x - left - s * GRAB_CX) / (s * GRAB_RX);
-    const ny = (c.y - top - s * GRAB_CY) / (s * GRAB_RY);
-    return nx * nx + ny * ny <= 1;
+    return geo.cursorOverPet(
+      screen.getCursorScreenPoint(),
+      { x: this.x, y: this.y, size: this.size, artSize: this.artSize },
+      { cx: GRAB_CX, cy: GRAB_CY, rx: GRAB_RX, ry: GRAB_RY },
+    );
   }
+
   private setIgnore(next: boolean): void {
     if (next === this.ignore) return;
     this.ignore = next;
