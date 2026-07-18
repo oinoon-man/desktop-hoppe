@@ -101,12 +101,14 @@
          (fill). Right/bottom anchored so the tail stays over the pet's head. */
       #bubble {
         position: absolute;
-        /* Centered over the pet's head so the bubble grows evenly to both sides. The pet
-           is scaled + pinned bottom-center, so its head sits at x≈150+32·pscale, y≈196·
-           pscale from the window bottom; anchor there and translateX(-50%) so the tail
-           (centered below) stays over the head as the bubble widens with the text. */
-        left: calc(150px + 32px * var(--pscale, 1));
-        bottom: calc(196px * var(--pscale, 1));
+        /* Centered over the pet's head so the bubble grows evenly to both sides.
+           --bubble-x / --bubble-y are published by the renderer from the head position
+           MEASURED on the current motion's art (see applyBubbleAnchor + measureHead), so the
+           bubble follows every character and motion instead of a one-size-fits-none constant.
+           The fallback below is the old fixed estimate, used only if a clip can't be
+           measured. translateX(-50%) centres the body (and its tail) on that point. */
+        left: var(--bubble-x, calc(150px + 32px * var(--pscale, 1)));
+        bottom: var(--bubble-y, calc(196px * var(--pscale, 1)));
         isolation: isolate;
         display: inline-flex;
         align-items: center;

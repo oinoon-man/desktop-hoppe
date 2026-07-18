@@ -76,6 +76,27 @@ petAPI?.onUpdateAnnounce((line) => speech.announce(line));
 petAPI?.onOpacity((o) => {
   document.body.style.opacity = String(o > 0 ? Math.min(o, 1) : 1);
 });
+/**
+ * Pin the speech bubble to the CURRENT motion's real head, measured from the art
+ * (CreateJSAnimator.measureHead) instead of hard-coded constants. The art is drawn at
+ * `petSize`, bottom-aligned and centred inside the fixed AUTHORED_SIZE stage, so an authored
+ * point maps into stage coordinates by that offset + scale. Clearing the vars falls back to
+ * the CSS defaults (the old constants), so an unmeasurable clip still renders sanely.
+ */
+function applyBubbleAnchor(): void {
+  const root = document.documentElement.style;
+  if (cjActive) cj.measureCurrentHead(); // settled state — safe (and cheap) to sample now
+  const head = cjActive ? cj.getHeadAnchor() : null;
+  if (!head) {
+    root.removeProperty('--bubble-x');
+    root.removeProperty('--bubble-y');
+    return;
+  }
+  const scale = petSize / cj.authoredSize();
+  root.setProperty('--bubble-x', `${AUTHORED_SIZE / 2 - petSize / 2 + head.ax * scale}px`);
+  root.setProperty('--bubble-y', `${petSize - head.ay * scale}px`);
+}
+
 // Framerate cap (e.g. throttle under Remote Desktop). Stored so it applies once CJ is ready.
 let maxFps = 0;
 petAPI?.onMaxFps((fps) => {
@@ -88,6 +109,7 @@ petAPI?.onPetSize((n) => {
   if (cjActive) {
     cj.setPetSize(petSize);
     cj.onResize();
+    applyBubbleAnchor(); // the anchor is in authored coords — re-map it for the new size
   }
 });
 petAPI?.onState((s) => {
@@ -101,6 +123,7 @@ petAPI?.onState((s) => {
     // clip is already current, but it recovers an animator that drifted out of
     // sync (e.g. stuck showing 'fall' while the pet has moved on to walk/idle).
     cj.setClip(mode);
+    applyBubbleAnchor(); // each motion has its own head position
   }
   if (mode !== prevMode) {
     if (mode === 'drag') speech.trigger('drag');
@@ -156,6 +179,7 @@ loadMotionScripts(charBase)
       cj.onResize();
       cj.setFacing(facing);
       cj.setClip(mode);
+      applyBubbleAnchor();
       updateStateVisual();
     } else {
       startCanvasLoop();

@@ -246,7 +246,11 @@ function createPet(index: number, character: CharacterId): Pet {
     pet.sim = null;
   });
 
-  void window.loadFile(path.join(__dirname, 'index.html'), { query: { char: renderChar } });
+  // `debug` exposes the renderer's animator as window.__cj (head anchors, clip bounds) —
+  // on for --debug/--geomtest so the geometry harness can inspect it.
+  const petQuery: Record<string, string> = { char: renderChar };
+  if (DEBUG || GEOMTEST) petQuery.debug = '1';
+  void window.loadFile(path.join(__dirname, 'index.html'), { query: petQuery });
   return pet;
 }
 
@@ -772,12 +776,20 @@ app.whenReady().then(() => {
         const [cw, ch] = w.getContentSize();
         const geo = await w.webContents
           .executeJavaScript(
-            `(() => { const p=document.getElementById('pet').getBoundingClientRect(),
-             b=document.getElementById('bubble').getBoundingClientRect();
+            `(() => { const pet=document.getElementById('pet'), st=document.getElementById('stage'),
+             p=pet.getBoundingClientRect(), b=document.getElementById('bubble').getBoundingClientRect(),
+             s=st.getBoundingClientRect(), cs=getComputedStyle(document.documentElement);
              return {iw:innerWidth,ih:innerHeight,dpr:devicePixelRatio,
-               petL:Math.round(p.left),petW:Math.round(p.width),petCx:Math.round(p.left+p.width/2),
-               bubL:Math.round(b.left),bubW:Math.round(b.width),
-               cvW:document.getElementById('pet').width}; })()`,
+               stage:Math.round(s.width)+'x'+Math.round(s.height),
+               petCx:Math.round(p.left-s.left+p.width/2), petW:Math.round(p.width),
+               // measured bubble anchor (empty = falling back to the old fixed estimate)
+               anchorX:cs.getPropertyValue('--bubble-x').trim()||'(fallback)',
+               anchorY:cs.getPropertyValue('--bubble-y').trim()||'(fallback)',
+               bubTailX:Math.round(b.left-s.left+b.width/2),
+               bubBottom:Math.round(s.bottom-b.bottom),
+               mode:(window.__cj&&window.__cj.current)||'?',
+               anchors:window.__cj?JSON.stringify([...window.__cj.headByMode].map(
+                 ([m,v])=>m+':'+Math.round(v.ax)+','+Math.round(v.ay)+'#'+v.samples)):'-'}; })()`,
           )
           .catch(() => null);
         console.log(`[geom] size=${sw}x${sh} content=${cw}x${ch} ${JSON.stringify(geo)}`);

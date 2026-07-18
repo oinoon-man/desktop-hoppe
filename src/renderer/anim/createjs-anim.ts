@@ -23,6 +23,9 @@ const MOTION_STATE: Record<string, Mode> = {
   sleep: 'sleep',
 };
 
+// How many showings of a motion to sample before its head anchor is considered settled.
+const HEAD_SAMPLES = 5;
+
 interface Clip {
   root: Any; // instantiated root MovieClip for this state
 }
@@ -41,6 +44,8 @@ export class CreateJSAnimator {
   private renderPaused = false; // Ticker detached while the window is hidden
   private petSize = 0; // intended pet px from main; scale the art from this, not the window
   private flip = new Set<Mode>(); // motions whose art is authored facing the other way
+  // Measured head anchor per motion, in authored coords, refined over the first few showings.
+  private headByMode = new Map<Mode, { ax: number; ay: number; samples: number }>();
   private compFps = 30; // the art's authored framerate
   private maxFps = 0; // framerate cap (>0), e.g. under Remote Desktop; 0 = uncapped
 
@@ -241,6 +246,76 @@ export class CreateJSAnimator {
   /** Motions whose art is authored facing the opposite way (mirror them). Set before init. */
   setFlip(modes: Mode[] | undefined): void {
     this.flip = new Set(modes);
+  }
+
+  /**
+   * Where the CURRENT motion's head actually is, in AUTHORED (this.width) coordinates.
+   *
+   * Measured from the rendered frame rather than hard-coded: the topmost non-transparent
+   * row is the head top, and the horizontal centre of the pixels in the top band is the
+   * head centre. A single constant can't be right for every character AND motion — Butter's
+   * sleeping head sits ~66px from Komi's, and Butter's own head moves ~67px between motions —
+   * which is exactly why the bubble kept drifting off the character or overlapping it.
+   *
+   * Cached per motion in authored coordinates, which don't change with pet size or DPI.
+   * Call this only once the animator is settled (size + scale applied) — measuring during
+   * init caught the art mid-setup and cached a bogus anchor. The renderer calls it from
+   * applyBubbleAnchor(), i.e. on every state push, which also supplies the samples.
+   */
+  measureCurrentHead(): void {
+    const mode = this.current;
+    if (!mode) return;
+    const seen = this.headByMode.get(mode);
+    // Frame 0 is not representative for multi-frame motions — `land` starts in a deep crouch,
+    // so measuring it once would pin the bubble to the crouched head forever. Sample the first
+    // few times this motion is shown and keep the pose with the HIGHEST head (smallest ay),
+    // which is where a speech bubble belongs; after that the anchor is settled.
+    if (!this.stage || (seen && seen.samples >= HEAD_SAMPLES)) return;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    if (!w || !h) return;
+    let data: Uint8ClampedArray;
+    try {
+      data = this.canvas.getContext('2d')!.getImageData(0, 0, w, h).data;
+    } catch {
+      return; // unreadable canvas — the CSS fallback anchor stays in effect
+    }
+    const ALPHA = 16;
+    const opaque = (x: number, y: number): boolean => data[(y * w + x) * 4 + 3] > ALPHA;
+    let top = -1;
+    for (let y = 0; y < h && top < 0; y++) for (let x = 0; x < w; x++) if (opaque(x, y)) { top = y; break; }
+    if (top < 0) return; // nothing drawn yet
+    let bottom = -1;
+    for (let y = h - 1; y >= 0 && bottom < 0; y--) for (let x = 0; x < w; x++) if (opaque(x, y)) { bottom = y; break; }
+    // Only the top slice — the head — decides the centre, so a tail or an outstretched arm
+    // lower down can't drag the anchor sideways.
+    const band = Math.max(4, Math.round((bottom - top) * 0.15));
+    let sum = 0;
+    let n = 0;
+    for (let y = top; y <= Math.min(h - 1, top + band); y++) {
+      for (let x = 0; x < w; x++) if (opaque(x, y)) { sum += x; n++; }
+    }
+    if (!n) return;
+    // Canvas backing px -> authored px (stage scale already folds in DPI and pet size).
+    const sx = this.stage.scaleX || 1;
+    const sy = this.stage.scaleY || 1;
+    const ax = sum / n / sx;
+    const ay = top / sy;
+    const samples = (seen?.samples ?? 0) + 1;
+    // Keep the highest head seen so far for this motion.
+    if (!seen || ay < seen.ay) this.headByMode.set(mode, { ax, ay, samples });
+    else this.headByMode.set(mode, { ...seen, samples });
+  }
+
+  /** The current motion's head anchor in authored coords, or null if it couldn't be measured. */
+  getHeadAnchor(): { ax: number; ay: number } | null {
+    const h = this.current ? this.headByMode.get(this.current) : undefined;
+    return h ? { ax: h.ax, ay: h.ay } : null;
+  }
+
+  /** Authored art size (the coordinate space getHeadAnchor() returns). */
+  authoredSize(): number {
+    return this.width;
   }
 
   /** Cap the animation framerate (>0), e.g. under Remote Desktop; 0 = the art's own rate. */
