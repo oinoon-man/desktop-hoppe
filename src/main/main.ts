@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, shell, globalShortcut } from 'electron';
 import path from 'node:path';
-import fs from 'node:fs';
 import { PetSim } from './sim';
 import { initWindows, WindowWatcher, enumerateShelves, sendWindowToBottom, isRemoteSession } from './windows';
 import { fetchDevlogList, fetchDevlogPost } from './devlog';
@@ -14,9 +13,11 @@ import {
   canSelfUpdate,
 } from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale, type UIKey } from '../shared/i18n';
-import type { PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
+import type { PetDialogue, Rect } from '../shared/types';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
 import { PET_SIZE } from '../shared/layout';
+import { loadAllDialogues } from './dialogue';
+import { openCredits, openPatchnotesWindow, openOpacityWindow, reloadChildWindows } from './child-windows';
 
 // ---------------------------------------------------------------------------
 // Main process
@@ -55,9 +56,6 @@ interface Pet {
 let pets: Pet[] = [];
 let watcher: WindowWatcher | null = null;
 let tray: Tray | null = null;
-let creditsWindow: BrowserWindow | null = null;
-let opacityWindow: BrowserWindow | null = null;
-let patchnotesWindow: BrowserWindow | null = null;
 let hidden = false; // 숨기기 toggle (session-only, not persisted)
 let opacitySaveTimer: ReturnType<typeof setTimeout> | null = null;
 let settings: Settings;
@@ -67,83 +65,6 @@ let climbtestDropped = false;
 // setLoginItemSettings is macOS/Windows only; Linux autostart would need a
 // ~/.config/autostart/*.desktop file, so we skip it (and disable the tray toggle).
 const autostartSupported = process.platform === 'darwin' || process.platform === 'win32';
-
-function readJson<T>(rel: string, fallback: T): T {
-  try {
-    let text = fs.readFileSync(path.join(__dirname, rel), 'utf-8');
-    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // strip UTF-8 BOM
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === 'object') return parsed as T;
-  } catch {
-    /* fall through */
-  }
-  return fallback;
-}
-
-// --- dialogue --------------------------------------------------------------
-// The pool ships with the app (assets/data/dialogue.json) and is read fresh on
-// every launch, so an app update always delivers the current lines. (It used to
-// be seeded once into userData and then kept, which froze updated installs on
-// whatever set they first launched with — the bundled lines never reached them.)
-
-const DIALOGUE_KEYS: DialogueCategory[] = ['greeting', 'idle', 'walk', 'sleep', 'drag', 'fall', 'land'];
-
-/** A line is either a plain string or `{ text, thought }`; keep the thought flag
- *  (속마음) if present. Returns null for empty/invalid entries. */
-function sanitizeLine(entry: unknown): DialogueLine | null {
-  if (typeof entry === 'string') {
-    const text = entry.trim();
-    return text ? text : null;
-  }
-  if (entry && typeof entry === 'object') {
-    const text = String((entry as { text?: unknown }).text ?? '').trim();
-    if (!text) return null;
-    return { text, thought: (entry as { thought?: unknown }).thought === true };
-  }
-  return null;
-}
-
-function sanitizeDialogue(raw: unknown): PetDialogue {
-  const out: PetDialogue = {};
-  if (!raw || typeof raw !== 'object') return out;
-  const obj = raw as Record<string, unknown>;
-  for (const key of DIALOGUE_KEYS) {
-    const arr = obj[key];
-    if (Array.isArray(arr)) {
-      const lines = arr.map(sanitizeLine).filter((l): l is DialogueLine => l !== null);
-      if (lines.length) out[key] = lines;
-    }
-  }
-  return out;
-}
-
-function dialogueFile(locale: Locale): string {
-  return locale === 'ko' ? 'dialogue.json' : `dialogue.${locale}.json`;
-}
-
-// Each character speaks from its own pool. Butter's lives at assets/data/; every other
-// character's lives under assets/data/<id>/, so Komi has separate lines from Butter.
-function dialogueDir(character: CharacterId): string {
-  return character === 'butter' ? path.join('assets', 'data') : path.join('assets', 'data', character);
-}
-
-function loadDialogue(locale: Locale, character: CharacterId): PetDialogue {
-  const dir = dialogueDir(character);
-  const read = (file: string): PetDialogue =>
-    sanitizeDialogue(readJson<PetDialogue>(path.join(dir, file), {}));
-  let d = read(dialogueFile(locale));
-  // Fall back to this character's Korean pool if its locale file is missing/empty…
-  if (Object.keys(d).length === 0 && locale !== 'ko') d = read('dialogue.json');
-  // …and to Butter's pool if a non-Butter character has no lines at all (never mute).
-  if (Object.keys(d).length === 0 && character !== 'butter') return loadDialogue(locale, 'butter');
-  return d;
-}
-
-function loadAllDialogues(locale: Locale): Record<CharacterId, PetDialogue> {
-  const out = {} as Record<CharacterId, PetDialogue>;
-  for (const id of Object.keys(CHARACTERS) as CharacterId[]) out[id] = loadDialogue(locale, id);
-  return out;
-}
 
 // --- pets ------------------------------------------------------------------
 
@@ -480,7 +401,7 @@ function buildTrayMenu(): Menu {
         rebuildTray();
       },
     },
-    { label: t(l, 'opacity'), click: () => openOpacityWindow() },
+    { label: t(l, 'opacity'), click: () => openOpacityWindow(settings.locale) },
     {
       label: t(l, 'size'),
       submenu: SIZE_STEPS.map((s) => ({
@@ -522,8 +443,8 @@ function buildTrayMenu(): Menu {
     { type: 'separator' },
     { label: `ver. ${app.getVersion()}`, enabled: false },
     { label: t(l, 'language'), submenu: languageSubmenu },
-    { label: t(l, 'patchnotes'), click: () => openPatchnotesWindow() },
-    { label: t(l, 'credits'), click: () => openCredits() },
+    { label: t(l, 'patchnotes'), click: () => openPatchnotesWindow(settings.locale) },
+    { label: t(l, 'credits'), click: () => openCredits(settings.locale) },
     { type: 'separator' },
     {
       label: t(l, 'hide'),
@@ -547,10 +468,7 @@ function setLocale(loc: Locale): void {
     p.window.webContents.send('set-locale', loc);
     p.window.webContents.send('dialogue', dialogues[p.character] ?? {});
   }
-  if (creditsWindow && !creditsWindow.isDestroyed()) loadCredits(creditsWindow);
-  if (opacityWindow && !opacityWindow.isDestroyed()) loadOpacity(opacityWindow);
-  if (patchnotesWindow && !patchnotesWindow.isDestroyed())
-    void patchnotesWindow.loadFile(path.join(__dirname, 'patchnotes.html'), { query: { loc } });
+  reloadChildWindows(loc);
   rebuildTray();
 }
 
@@ -564,125 +482,6 @@ function createTray(): void {
   tray.setToolTip('Desktop Butter');
   rebuildTray();
   tray.on('click', () => tray?.popUpContextMenu());
-}
-
-// --- credits popup ---------------------------------------------------------
-
-function loadCredits(win: BrowserWindow): void {
-  void win.loadFile(path.join(__dirname, 'credits.html'), { query: { loc: settings.locale } });
-}
-
-function openCredits(): void {
-  if (creditsWindow && !creditsWindow.isDestroyed()) {
-    creditsWindow.show();
-    creditsWindow.focus();
-    return;
-  }
-  creditsWindow = new BrowserWindow({
-    width: 380,
-    height: 286, // web-content height (useContentSize) — fits the credits layout
-    useContentSize: true,
-    title: t(settings.locale, 'credits'),
-    center: true,
-    resizable: false,
-    minimizable: false,
-    maximizable: false,
-    fullscreenable: false,
-    autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
-  });
-  // credited links always open in the user's browser, never in this window
-  const openExternal = (url: string) => {
-    if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
-  };
-  creditsWindow.webContents.setWindowOpenHandler(({ url }) => {
-    openExternal(url);
-    return { action: 'deny' };
-  });
-  creditsWindow.webContents.on('will-navigate', (e, url) => {
-    e.preventDefault();
-    openExternal(url);
-  });
-  loadCredits(creditsWindow);
-  creditsWindow.on('closed', () => {
-    creditsWindow = null;
-  });
-}
-
-// In-app patch notes: a window that lists the itch.io devlog and shows each post's
-// full body (main does the fetching; see devlog.ts). Links open in the browser.
-function openPatchnotesWindow(): void {
-  if (patchnotesWindow && !patchnotesWindow.isDestroyed()) {
-    patchnotesWindow.show();
-    patchnotesWindow.focus();
-    return;
-  }
-  patchnotesWindow = new BrowserWindow({
-    width: 660,
-    height: 540,
-    useContentSize: true,
-    title: t(settings.locale, 'patchnotes'),
-    center: true,
-    maximizable: false,
-    fullscreenable: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  const openExternal = (url: string) => {
-    if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
-  };
-  patchnotesWindow.webContents.setWindowOpenHandler(({ url }) => {
-    openExternal(url);
-    return { action: 'deny' };
-  });
-  patchnotesWindow.webContents.on('will-navigate', (e, url) => {
-    e.preventDefault();
-    openExternal(url);
-  });
-  void patchnotesWindow.loadFile(path.join(__dirname, 'patchnotes.html'), {
-    query: { loc: settings.locale },
-  });
-  patchnotesWindow.on('closed', () => {
-    patchnotesWindow = null;
-  });
-}
-
-// --- opacity slider window -------------------------------------------------
-
-function loadOpacity(win: BrowserWindow): void {
-  void win.loadFile(path.join(__dirname, 'opacity.html'), { query: { loc: settings.locale } });
-}
-
-function openOpacityWindow(): void {
-  if (opacityWindow && !opacityWindow.isDestroyed()) {
-    opacityWindow.show();
-    opacityWindow.focus();
-    return;
-  }
-  opacityWindow = new BrowserWindow({
-    width: 320,
-    height: 148,
-    title: t(settings.locale, 'opacity'),
-    center: true,
-    resizable: false,
-    minimizable: false,
-    maximizable: false,
-    fullscreenable: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  loadOpacity(opacityWindow);
-  opacityWindow.on('closed', () => {
-    opacityWindow = null;
-  });
 }
 
 // --- IPC -------------------------------------------------------------------
