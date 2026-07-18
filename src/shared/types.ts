@@ -50,18 +50,6 @@ export interface Rect {
   h: number;
 }
 
-/** One animation clip made of ordered frame images (prototype pipeline). */
-export interface ClipDef {
-  fps: number;
-  loop: boolean;
-  /** Frame paths relative to `assets/prototype/`, e.g. "idle/idle_00.png". */
-  frames: string[];
-}
-
-/** Loaded from assets/prototype/manifest.json; sent main -> renderer. */
-export interface PetManifest {
-  clips: Partial<Record<Mode, ClipDef>>;
-}
 
 /** Speech-bubble line categories: each mode plus a startup greeting. */
 export type DialogueCategory = Mode | 'greeting';

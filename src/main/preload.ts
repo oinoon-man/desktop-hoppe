@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { PetState, PetManifest, PetDialogue } from '../shared/types';
+import type { PetState, PetDialogue } from '../shared/types';
 
 // Minimal, explicit capability surface for the sandboxed renderer.
 contextBridge.exposeInMainWorld('petAPI', {
@@ -12,9 +12,6 @@ contextBridge.exposeInMainWorld('petAPI', {
   /** Subscribe to state pushes (mode/facing) from the simulation. */
   onState: (cb: (state: PetState) => void) =>
     ipcRenderer.on('state', (_e, state: PetState) => cb(state)),
-  /** Receive the prototype frame manifest once, after load. */
-  onManifest: (cb: (manifest: PetManifest) => void) =>
-    ipcRenderer.on('manifest', (_e, manifest: PetManifest) => cb(manifest)),
   /** Receive the dialogue pool once, after load. */
   onDialogue: (cb: (dialogue: PetDialogue) => void) =>
     ipcRenderer.on('dialogue', (_e, dialogue: PetDialogue) => cb(dialogue)),

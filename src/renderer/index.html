@@ -73,31 +73,6 @@
         transform: translateX(-50%);
       }
 
-      /* --- labeled solid placeholder (states without real art yet) --------- */
-      #placeholder {
-        position: absolute;
-        left: 50%;
-        top: 175px;
-        width: 196px;
-        height: 196px;
-        transform: translate(-50%, -50%);
-        border-radius: 30px;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        border: 3px solid rgba(255, 255, 255, 0.6);
-        color: #fff;
-        font: 800 22px/1.1 var(--ui-font);
-        letter-spacing: 1px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
-        pointer-events: none;
-      }
-      /* Sleep posture/zzz and the idle "breathe" bounce used to be faked here in
-         CSS; the real Animate art now carries its own motion, so the app only
-         loops the art (no app-side vertical bounce, no synthetic zzz). */
-
       /* --- speech bubble: clean CSS bubble in the bubble.png tone ----------- */
       /* Crisp uniform outline (no raster 9-slice), small triangle tail. Text is
          set via textContent; the tail is drawn with ::before (outline) + ::after
@@ -220,7 +195,6 @@
          viewport (fractional-DPI) can't drift the pet away from the bubble. See #stage. -->
     <div id="stage">
       <canvas id="pet"></canvas>
-      <div id="placeholder"></div>
       <div id="bubble"></div>
     </div>
     <script src="./assets/vendor/createjs.min.js"></script>

@@ -5,12 +5,9 @@
 // while the cursor is over the pet's grab region, so the pet is grabbable even
 // while it walks or falls. Position/physics live in main.
 // ---------------------------------------------------------------------------
-import type { Mode, PetState, PetManifest, PetDialogue } from '../shared/types';
+import type { Mode, PetState, PetDialogue } from '../shared/types';
 import { CHARACTERS, isCharacterId } from '../shared/types';
 import { PET_SIZE } from '../shared/layout';
-import type { IAnimator } from './anim/types';
-import { PlaceholderAnimator } from './anim/placeholder';
-import { FrameAnimator } from './anim/frame';
 import { CreateJSAnimator } from './anim/createjs-anim';
 import { SpeechController } from './speech/speech';
 
@@ -19,7 +16,6 @@ interface PetAPI {
   release: () => void;
   showContextMenu: () => void;
   onState: (cb: (s: PetState) => void) => void;
-  onManifest: (cb: (m: PetManifest) => void) => void;
   onDialogue: (cb: (d: PetDialogue) => void) => void;
   onSpeechEnabled: (cb: (enabled: boolean) => void) => void;
   onUpdateAnnounce: (cb: (line: string) => void) => void;
@@ -33,8 +29,6 @@ const petAPI: PetAPI | undefined = (window as unknown as { petAPI?: PetAPI }).pe
 const canvas = document.getElementById('pet') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 
-let cssW = 0;
-let cssH = 0;
 // Single source of truth (shared with main) — also pushed into CSS below so the stage box
 // can't drift from it.
 const AUTHORED_SIZE = PET_SIZE;
@@ -46,8 +40,6 @@ document.documentElement.style.setProperty('--stage-size', `${PET_SIZE}px`);
 let petSize = AUTHORED_SIZE;
 function resize(): void {
   const dpr = window.devicePixelRatio || 1;
-  cssW = petSize;
-  cssH = petSize;
   canvas.style.width = petSize + 'px'; // fixed CSS size — a grown window can't stretch it
   canvas.style.height = petSize + 'px';
   canvas.width = Math.round(petSize * dpr);
@@ -60,16 +52,12 @@ resize();
 window.addEventListener('resize', resize);
 
 // --- animation -------------------------------------------------------------
-const placeholder = new PlaceholderAnimator();
-const frames = new FrameAnimator();
 const speech = new SpeechController(document.getElementById('bubble') as HTMLElement);
-const placeholderEl = document.getElementById('placeholder') as HTMLElement;
 
 let mode: Mode = 'idle';
 let facing: 1 | -1 = 1;
 let prevMode: Mode = 'idle';
 
-petAPI?.onManifest((m) => frames.load(m));
 petAPI?.onDialogue((d) => speech.load(d));
 // Switch the speech-bubble font to match the language (ja -> Mochiy Pop One via
 // the html[lang="ja"] rule in index.html).
@@ -136,9 +124,6 @@ petAPI?.onState((s) => {
   }
 });
 
-function animatorFor(clip: Mode): IAnimator {
-  return frames.hasClip(clip) ? frames : placeholder;
-}
 
 // Which character this window shows (main passes ?char= on the URL). Each character's six
 // motion comps live in their own assets/animate/<dir>/ folder; load them dynamically
@@ -166,8 +151,7 @@ function loadMotionScripts(base: string): Promise<void> {
   );
 }
 
-// Prefer the Adobe Animate / CreateJS art when a published composition is present;
-// otherwise fall back to the frame/placeholder canvas loop.
+// The Adobe Animate / CreateJS art is the only renderer — every state is a published motion.
 const cj = new CreateJSAnimator(canvas);
 let cjActive = false;
 cj.setFlip(character.flip); // mirror any motions this character authored facing the other way
@@ -186,16 +170,17 @@ loadMotionScripts(charBase)
       applyBubbleAnchor();
       updateStateVisual();
     } else {
-      startCanvasLoop();
+      // Every state is a published Animate motion, so there is no second rendering path:
+      // if the art can't load the install is broken (it ships inside the asar). Say so
+      // loudly rather than silently drawing nothing.
+      console.error(
+        `[createjs] no motions loaded from ${charBase} — the art is missing or corrupt; reinstall.`,
+      );
     }
   });
 
-// With the real Animate art loaded, every state is a published motion, so the
-// art just renders/loops for whatever mode is current. Without it, the canvas
-// loop (frame/placeholder animator) draws the pet instead. The DOM #placeholder
-// box is unused now.
+// The art draws itself for whatever mode is current; nothing else paints the canvas.
 function updateStateVisual(): void {
-  placeholderEl.style.display = 'none';
   if (cjActive) cj.setVisible(true);
 }
 
@@ -222,20 +207,6 @@ function watchDpr(): void {
 }
 watchDpr();
 
-function startCanvasLoop(): void {
-  let lastT = performance.now();
-  function loop(t: number): void {
-    const dt = t - lastT;
-    lastT = t;
-    const anim = animatorFor(mode);
-    anim.setClip(mode);
-    anim.update(dt);
-    ctx.clearRect(0, 0, cssW, cssH);
-    anim.draw(ctx, cssW, cssH, facing);
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-}
 
 // --- interaction -----------------------------------------------------------
 // We only receive these events when main has enabled capture (cursor over the

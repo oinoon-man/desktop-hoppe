@@ -14,7 +14,7 @@ import {
   canSelfUpdate,
 } from './updater';
 import { t, LOCALES, LOCALE_LABELS, type Locale, type UIKey } from '../shared/i18n';
-import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
+import type { PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
 import { PET_SIZE } from '../shared/layout';
 
@@ -61,7 +61,6 @@ let patchnotesWindow: BrowserWindow | null = null;
 let hidden = false; // 숨기기 toggle (session-only, not persisted)
 let opacitySaveTimer: ReturnType<typeof setTimeout> | null = null;
 let settings: Settings;
-let manifest: PetManifest = { clips: {} };
 let dialogues: Record<CharacterId, PetDialogue> = {} as Record<CharacterId, PetDialogue>;
 let climbingAvailable = false;
 let climbtestDropped = false;
@@ -218,7 +217,6 @@ function createPet(index: number, character: CharacterId): Pet {
 
   window.webContents.on('did-finish-load', () => {
     if (window.isDestroyed()) return;
-    window.webContents.send('manifest', manifest);
     const pool = dialogues[pet.character] ?? {};
     window.webContents.send('dialogue', pool);
     console.log('[dialogue]', pet.character, Object.values(pool).reduce((n, a) => n + a.length, 0), 'lines');
@@ -730,7 +728,6 @@ app.on('second-instance', () => revealPets());
 app.whenReady().then(() => {
   if (!gotLock) return;
   settings = loadSettings();
-  manifest = readJson<PetManifest>(path.join('assets', 'prototype', 'manifest.json'), { clips: {} });
   dialogues = loadAllDialogues(settings.locale);
   applyAutostart();
 
