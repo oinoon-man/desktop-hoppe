@@ -16,6 +16,7 @@ import {
 import { t, LOCALES, LOCALE_LABELS, type Locale, type UIKey } from '../shared/i18n';
 import type { PetManifest, PetDialogue, DialogueLine, DialogueCategory, Rect } from '../shared/types';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
+import { PET_SIZE } from '../shared/layout';
 
 // ---------------------------------------------------------------------------
 // Main process
@@ -24,7 +25,6 @@ import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
 // single Win32 window watcher that feeds shelves to every pet.
 // ---------------------------------------------------------------------------
 
-const PET_SIZE = 300;
 // Animation cap under Remote Desktop (RDP): the transparent window streams every repaint
 // over the wire, so a full-rate animation floods the RDP upload channel. Throttle it there
 // (0 elsewhere = uncapped). See isRemoteSession() + the renderer's Ticker cap.

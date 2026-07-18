@@ -10,6 +10,7 @@
 // Uses `any` for the CreateJS runtime (no bundled type defs; loaded as globals).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Mode } from '../../shared/types';
+import { PET_SIZE } from '../../shared/layout';
 
 type Any = any;
 
@@ -34,7 +35,7 @@ export class CreateJSAnimator {
   private readonly canvas: HTMLCanvasElement;
   private stage: Any = null;
   private container: Any = null;
-  private width = 300;
+  private width = PET_SIZE; // authored art size; overridden by the composition's own props
   private ready = false;
   private clips = new Map<Mode, Clip>();
   private current: Mode | null = null;
@@ -73,7 +74,7 @@ export class CreateJSAnimator {
       .filter((d) => d.mode);
     if (descs.length === 0) return Promise.resolve(false);
 
-    this.width = descs[0].props.width || 300;
+    this.width = descs[0].props.width || PET_SIZE;
     this.compFps = descs[0].props.fps || 30;
 
     return Promise.all(descs.map((d) => this.loadComp(cjs, d, basePath)))

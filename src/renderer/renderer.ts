@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 import type { Mode, PetState, PetManifest, PetDialogue } from '../shared/types';
 import { CHARACTERS, isCharacterId } from '../shared/types';
+import { PET_SIZE } from '../shared/layout';
 import type { IAnimator } from './anim/types';
 import { PlaceholderAnimator } from './anim/placeholder';
 import { FrameAnimator } from './anim/frame';
@@ -34,7 +35,10 @@ const ctx = canvas.getContext('2d')!;
 
 let cssW = 0;
 let cssH = 0;
-const AUTHORED_SIZE = 300; // matches PET_SIZE; the size setting scales from this
+// Single source of truth (shared with main) — also pushed into CSS below so the stage box
+// can't drift from it.
+const AUTHORED_SIZE = PET_SIZE;
+document.documentElement.style.setProperty('--stage-size', `${PET_SIZE}px`);
 // Authoritative pet size in px, pushed by main (onPetSize). We size the canvas and art
 // from THIS, never window.innerWidth: a transparent frameless window silently grows on
 // fractional-DPI displays (125/150/175 %), and deriving the scale from it made the pet

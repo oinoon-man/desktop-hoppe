@@ -56,8 +56,11 @@
         position: absolute;
         left: 0;
         top: 0;
-        width: 300px; /* == PET_SIZE (the authored/window size) */
-        height: 300px;
+        /* --stage-size is pushed in by renderer.js from the shared PET_SIZE constant, so
+           this box can never drift from the window/art size. The literal is only the
+           pre-script fallback. */
+        width: var(--stage-size, 300px);
+        height: var(--stage-size, 300px);
         overflow: hidden;
       }
       #pet {
