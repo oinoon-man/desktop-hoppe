@@ -84,13 +84,10 @@
   ],
   "license": "SEE LICENSE IN README.md",
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.1.0",
     "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
-    "png-to-ico": "^3.0.1",
-    "pngjs": "^7.0.0",
     "typescript": "^6.0.3"
   },
   "dependencies": {

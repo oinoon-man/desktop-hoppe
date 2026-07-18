@@ -1,5 +1,11 @@
 // Rasterize scripts/icon.svg into a multi-size Windows .ico (and a 256 PNG).
-// Run: node scripts/make-icon.mjs
+//
+// One-off tool: the icons it produces are committed under build/, so this only needs running
+// when the icon art changes. Its two rasterizer packages are therefore NOT in devDependencies
+// (they are native and heavy, and every CI `npm ci` would pay for them). Install them on
+// demand first:
+//
+//   npm i --no-save @resvg/resvg-js png-to-ico && node scripts/make-icon.mjs
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
