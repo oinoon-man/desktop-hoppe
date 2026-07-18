@@ -17,6 +17,7 @@ import type { PetDialogue, Rect } from '../shared/types';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
 import { PET_SIZE } from '../shared/layout';
 import { loadAllDialogues } from './dialogue';
+import { applyAutostart as setAutostart, autostartSupported } from './autostart';
 import { openCredits, openPatchnotesWindow, openOpacityWindow, reloadChildWindows } from './child-windows';
 
 // ---------------------------------------------------------------------------
@@ -62,9 +63,6 @@ let settings: Settings;
 let dialogues: Record<CharacterId, PetDialogue> = {} as Record<CharacterId, PetDialogue>;
 let climbingAvailable = false;
 let climbtestDropped = false;
-// setLoginItemSettings is macOS/Windows only; Linux autostart would need a
-// ~/.config/autostart/*.desktop file, so we skip it (and disable the tray toggle).
-const autostartSupported = process.platform === 'darwin' || process.platform === 'win32';
 
 // --- pets ------------------------------------------------------------------
 
@@ -213,10 +211,7 @@ function applySpeech(): void {
   for (const p of pets) if (!p.window.isDestroyed()) p.window.webContents.send('set-speech', settings.speech);
 }
 function applyAutostart(): void {
-  if (!autostartSupported) return; // no-op on Linux
-  // Explicit path re-asserts one current Run entry (fixes stale paths from older
-  // installs and avoids duplicate autostart launches).
-  app.setLoginItemSettings({ openAtLogin: settings.autostart, path: process.execPath });
+  setAutostart(settings.autostart);
 }
 // "윈도우 맨 뒤로": when on, drop the always-on-top flag and push the window to
 // the bottom of the z-order so the pet sits behind other windows.
@@ -420,8 +415,7 @@ function buildTrayMenu(): Menu {
     {
       label: t(l, 'autostart'),
       type: 'checkbox',
-      checked: settings.autostart && autostartSupported,
-      enabled: autostartSupported, // Linux has no supported login-item API
+      checked: settings.autostart && autostartSupported(),
       click: () => {
         settings.autostart = !settings.autostart;
         saveSettings(settings);
