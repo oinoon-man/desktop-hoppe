@@ -88,6 +88,7 @@ export class CreateJSAnimator {
           if (!rootName) continue;
           const root = new d.lib[rootName]();
           root.visible = false;
+          this.pinFramerate(cjs, root); // play by elapsed time, not one-frame-per-tick (see below)
           this.container.addChild(root);
           this.clips.set(d.mode as Mode, { root });
         }
@@ -102,6 +103,13 @@ export class CreateJSAnimator {
         // (below). Unlike 1.0.3's backgroundThrottling:false, this doesn't disable
         // Chromium's occlusion handling, so it can't bring back the compositor RAM runaway.
         cjs.Ticker.timingMode = cjs.Ticker.TIMEOUT;
+        // Cap the per-tick delta so a stall (occluded window, system sleep, a blocking
+        // dialog) can't dump a huge elapsed time into the now time-based clips and make
+        // them leap dozens of frames — and fire dozens of frame scripts — in one tick.
+        // 4x the frame interval (~133ms @30fps): tight enough to bound a stall, but safely
+        // above the slowest NORMAL tick we schedule — the RDP cap renders at ~12fps (83ms) —
+        // so it never clamps a legitimately slow render into a too-slow animation.
+        cjs.Ticker.maxDelta = Math.round(4000 / this.compFps);
         cjs.Ticker.addEventListener('tick', this.stage);
         // Stop compositing entirely while the window is hidden (tray "숨기기" /
         // minimized): detach the stage from the Ticker so a hidden pet costs no
@@ -130,6 +138,30 @@ export class CreateJSAnimator {
         console.log('[createjs] init error:', e && (e.message || e));
         return false;
       });
+  }
+
+  /**
+   * Make a clip tree advance by ELAPSED TIME instead of one-frame-per-tick.
+   *
+   * Adobe Animate's exported MovieClips leave `framerate` null, and EaselJS then advances
+   * such a clip exactly ONE frame per Ticker tick, ignoring how much real time passed. So the
+   * pet's animation speed silently becomes the *tick rate*. We pace the Ticker at the art's
+   * fps (TIMEOUT @ compFps), which is right on most machines — but on high-refresh displays
+   * (120/144/240 Hz), or anywhere the Ticker ends up in requestAnimationFrame mode, ticks
+   * arrive far faster than 30/s and the pet plays several times too fast (measured 144 fps on
+   * a 144 Hz monitor). Pinning every MovieClip in the tree to the authored fps makes EaselJS
+   * advance by delta-time, so the speed is constant on every display regardless of tick rate.
+   *
+   * Set on EVERY node, not just the root: EaselJS's parent-framerate lookup can resolve to
+   * `undefined` (not null) for a nested clip, which makes `advance()` compute NaN frames and
+   * FREEZE the clip (EaselJS #925). Explicit per-clip framerate sidesteps that walk entirely.
+   * The authored fps (this.compFps) is the animation's true speed; the Ticker/RDP cap only
+   * governs how often we render, which stays independent of it.
+   */
+  private pinFramerate(cjs: Any, node: Any): void {
+    if (cjs.MovieClip && node instanceof cjs.MovieClip) node.framerate = this.compFps;
+    const n = node && node.numChildren ? node.numChildren : 0;
+    for (let i = 0; i < n; i++) this.pinFramerate(cjs, node.getChildAt(i));
   }
 
   /** Preload one composition's texture atlas and build its sprite sheets. */
