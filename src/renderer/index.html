@@ -56,17 +56,18 @@
         position: absolute;
         left: 0;
         top: 0;
-        /* --stage-size is pushed in by renderer.js from the shared PET_SIZE constant, so
-           this box can never drift from the window/art size. The literal is only the
-           pre-script fallback. */
-        width: var(--stage-size, 300px);
-        height: var(--stage-size, 300px);
+        /* --stage-w / --stage-h are pushed in by renderer.js from the shared layout
+           constants, so this box can never drift from the real window size. The window is
+           taller than the pet (headroom on top for the bubble); the pet sits flush at the
+           bottom. The literals are only the pre-script fallback. */
+        width: var(--stage-w, 300px);
+        height: var(--stage-h, 420px);
         overflow: hidden;
       }
       #pet {
         /* The canvas is sized to the pet (renderer sets width/height) and pinned to the
-           bottom-center of the fixed stage, so the feet stay on the floor and the
-           speech bubble has room above. width/height come from the renderer. */
+           bottom-center of the stage, so the feet stay on the floor and the headroom above
+           holds the speech bubble. width/height come from the renderer. */
         position: absolute;
         left: 50%;
         bottom: 0;

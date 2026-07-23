@@ -1,6 +1,12 @@
 import { BrowserWindow, screen } from 'electron';
 import type { Mode, PetState, Rect } from '../shared/types';
 import * as geo from './geometry';
+import { PET_SIZE, STAGE_H } from '../shared/layout';
+
+// The window is taller than the pet (STAGE_H), with the pet flush at the bottom and empty
+// headroom on top for the speech bubble. (x, y) track the PET's top-left; the window's
+// top-left is this much higher.
+const WINDOW_TOP_OFFSET = STAGE_H - PET_SIZE;
 
 // ---------------------------------------------------------------------------
 // PetSim — the pet's simulation, run in the MAIN process in screen coordinates.
@@ -301,7 +307,9 @@ export class PetSim {
       this.vy = 0;
       this.supportRect = null;
     }
-    this.win.setPosition(Math.round(this.x), Math.round(this.y));
+    // Shift the window up by the bubble headroom so the pet lands at (x, y) while the taller
+    // window extends above it.
+    this.win.setPosition(Math.round(this.x), Math.round(this.y - WINDOW_TOP_OFFSET));
   }
 
   // --- click-through (grabbable-while-moving) ------------------------------

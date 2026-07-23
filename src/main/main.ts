@@ -15,7 +15,7 @@ import {
 import { t, LOCALES, LOCALE_LABELS, type Locale, type UIKey } from '../shared/i18n';
 import type { PetDialogue, Rect } from '../shared/types';
 import { CHARACTERS, isCharacterId, type CharacterId } from '../shared/types';
-import { PET_SIZE } from '../shared/layout';
+import { PET_SIZE, STAGE_H } from '../shared/layout';
 import { loadAllDialogues } from './dialogue';
 import { applyAutostart as setAutostart, autostartSupported } from './autostart';
 import { openCredits, openPatchnotesWindow, openOpacityWindow, reloadChildWindows } from './child-windows';
@@ -76,10 +76,13 @@ function createPet(index: number, character: CharacterId): Pet {
   // it (renderer). A small window would clip the bubble into a 1-char vertical sliver.
   const sz = PET_SIZE;
   const window = new BrowserWindow({
+    // Wider-than-tall would be wrong: the window is PET_SIZE wide and STAGE_H tall (the pet
+    // sits flush at the bottom, headroom above for the bubble). The window top is therefore
+    // BUBBLE_HEADROOM px above the pet's top — the sim shifts its position up to match.
     width: sz,
-    height: sz,
+    height: STAGE_H,
     x: Math.max(wa.x, wa.x + wa.width - sz - 40 - index * 90),
-    y: wa.y + wa.height - sz - 40,
+    y: wa.y + wa.height - STAGE_H - 40,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -111,23 +114,22 @@ function createPet(index: number, character: CharacterId): Pet {
 
   // A transparent, frameless window creeps larger every paint on fractional-DPI displays
   // (125/150/175 %) — an Electron/Chromium bug. Guard BOTH sizes: the outer window AND the
-  // CONTENT (viewport). The content can drift on its own while the outer window sits at
-  // 300px, and anything the renderer positions against the viewport then slides with it —
-  // that's what walked the pet out of view while the bubble stayed put. (The renderer is
-  // also structurally immune now via the fixed #stage box; this is belt-and-suspenders,
-  // and it can only help when a 'resize' actually fires.)
+  // CONTENT (viewport). The content can drift on its own while the outer window sits at its
+  // fixed size, and anything the renderer positions against the viewport then slides with it
+  // — that's what walked the pet out of view while the bubble stayed put. (The renderer is
+  // also structurally immune now via the fixed #stage box; this is belt-and-suspenders, and
+  // it can only help when a 'resize' actually fires.)
   let enforcingSize = false;
   window.on('resize', () => {
     if (enforcingSize || window.isDestroyed()) return;
-    const want = PET_SIZE; // the pet window is always PET_SIZE (the art scales inside)
     const [w, h] = window.getSize();
     const [cw, ch] = window.getContentSize();
-    const outerDrift = Math.abs(w - want) > 1 || Math.abs(h - want) > 1;
-    const contentDrift = Math.abs(cw - want) > 1 || Math.abs(ch - want) > 1;
+    const outerDrift = Math.abs(w - PET_SIZE) > 1 || Math.abs(h - STAGE_H) > 1;
+    const contentDrift = Math.abs(cw - PET_SIZE) > 1 || Math.abs(ch - STAGE_H) > 1;
     if (outerDrift || contentDrift) {
       enforcingSize = true;
-      if (contentDrift) window.setContentSize(want, want);
-      window.setSize(want, want);
+      if (contentDrift) window.setContentSize(PET_SIZE, STAGE_H);
+      window.setSize(PET_SIZE, STAGE_H);
       setTimeout(() => (enforcingSize = false), 0);
     }
   });
@@ -582,7 +584,12 @@ app.whenReady().then(() => {
                  ([m,v])=>m+':'+Math.round(v.ax)+','+Math.round(v.ay)+'#'+v.samples)):'-'}; })()`,
           )
           .catch(() => null);
-        console.log(`[geom] size=${sw}x${sh} content=${cw}x${ch} ${JSON.stringify(geo)}`);
+        const b = w.getBounds();
+        const wa = screen.getPrimaryDisplay().workArea;
+        const floor = wa.y + wa.height;
+        console.log(
+          `[geom] size=${sw}x${sh} content=${cw}x${ch} winBottom=${b.y + b.height} floor=${floor} feetGap=${floor - (b.y + b.height)} ${JSON.stringify(geo)}`,
+        );
         if (++n >= 10) clearInterval(iv);
       }, 800);
     }

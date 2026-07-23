@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 import type { Mode, PetState, PetDialogue } from '../shared/types';
 import { CHARACTERS, isCharacterId } from '../shared/types';
-import { PET_SIZE } from '../shared/layout';
+import { PET_SIZE, STAGE_H } from '../shared/layout';
 import { CreateJSAnimator } from './anim/createjs-anim';
 import { SpeechController } from './speech/speech';
 
@@ -32,7 +32,8 @@ const ctx = canvas.getContext('2d')!;
 // Single source of truth (shared with main) — also pushed into CSS below so the stage box
 // can't drift from it.
 const AUTHORED_SIZE = PET_SIZE;
-document.documentElement.style.setProperty('--stage-size', `${PET_SIZE}px`);
+document.documentElement.style.setProperty('--stage-w', `${PET_SIZE}px`);
+document.documentElement.style.setProperty('--stage-h', `${STAGE_H}px`);
 // Authoritative pet size in px, pushed by main (onPetSize). We size the canvas and art
 // from THIS, never window.innerWidth: a transparent frameless window silently grows on
 // fractional-DPI displays (125/150/175 %), and deriving the scale from it made the pet
