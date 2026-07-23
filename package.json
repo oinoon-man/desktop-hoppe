@@ -1,6 +1,6 @@
 {
   "name": "desktop-hoppe",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "private": true,
   "description": "Desktop pet (Trickcal Revive fan project, non-commercial) — free-roaming desktop companion with window interaction and random speech bubbles.",
   "main": "dist/main.js",
