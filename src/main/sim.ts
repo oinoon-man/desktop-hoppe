@@ -176,6 +176,7 @@ export class PetSim {
   getX(): number {
     return this.x;
   }
+
   /** --seamtest: rapidly slide the window straddling the x=0 monitor seam. */
   startSeamTest(): void {
     this.debugSeam = true;
@@ -246,17 +247,17 @@ export class PetSim {
   }
   // Horizontal roaming spans the union of every display (leftmost .. rightmost).
   private minX(): number {
-    return geo.minX(this.displayAreas());
+    return geo.minX(this.displayAreas(), this.size, this.artSize);
   }
   private maxX(): number {
-    return geo.maxX(this.displayAreas(), this.size);
+    return geo.maxX(this.displayAreas(), this.size, this.artSize);
   }
   // The contiguous horizontal run of *adjacent* display work areas that includes the
   // display under `cx` (or the nearest one when `cx` is in a gap). The pet wanders and
   // steps across seams within this run, but never targets the void between non-adjacent
   // monitors — walking into that gap is what wedged it in a multi-monitor "dead zone".
   private walkableSpan(cx: number): geo.Span {
-    return geo.walkableSpan(this.displayAreas(), cx, this.size);
+    return geo.walkableSpan(this.displayAreas(), cx, this.size, this.artSize);
   }
 
   /** Every display's work area, sorted by geometry.ts's contract (plain data). */

@@ -51,8 +51,25 @@ test('walkableSpan: tolerates a 1px rounding gap between touching monitors', () 
 
 test('minX / maxX span every display', () => {
   const areas = [display(1920, 1920), display(-1920, 1920), display(0, 1920)];
-  assert.equal(minX(areas), -1920);
+  assert.equal(minX(areas, SIZE), -1920);
   assert.equal(maxX(areas, SIZE), 3840 - SIZE);
+});
+
+test('walls follow the art when the pet is scaled down (the size-collision bug)', () => {
+  const art = 90; // 30% of the 300px window
+  const inset = (SIZE - art) / 2; // 105 — the transparent margin each side
+  const areas = [display(0, 1920)];
+
+  // The window may now extend off-screen so the VISIBLE art reaches the edges.
+  assert.equal(minX(areas, SIZE, art), 0 - inset);
+  assert.equal(maxX(areas, SIZE, art), 1920 - SIZE + inset);
+
+  const span = walkableSpan(areas, 500, SIZE, art);
+  assert.equal(span.lo, 0 - inset);
+  assert.equal(span.hi, 1920 - SIZE + inset);
+  // at the extremes the art edge is flush with the screen edge, not 105px short
+  assert.equal(span.lo + inset, 0, 'art-left flush with the left edge');
+  assert.equal(span.hi + inset + art, 1920, 'art-right flush with the right edge');
 });
 
 // --- grab region ----------------------------------------------------------------

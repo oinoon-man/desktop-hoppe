@@ -31,6 +31,18 @@ export function clamp(v: number, lo: number, hi: number): number {
 }
 
 /**
+ * Horizontal inset of the visible art inside its (larger) window. The art is scaled to
+ * `artSize` and centred in the `size`-wide window, so each side has this much empty,
+ * transparent margin. Wall clamps subtract it so the VISIBLE pet — not the invisible window
+ * — is what stops at a screen edge: without it, a pet shrunk to 30% halted (size-artSize)/2 =
+ * 105px short of the edge on each side.
+ */
+function artInset(size: number, artSize: number): number {
+  const a = artSize > 0 ? Math.min(artSize, size) : size;
+  return (size - a) / 2;
+}
+
+/**
  * The contiguous run of *adjacent* display work areas containing `cx` (or the nearest one
  * when `cx` falls in a gap between non-adjacent monitors), as left-edge bounds for a pet of
  * `size` px.
@@ -40,8 +52,9 @@ export function clamp(v: number, lo: number, hi: number): number {
  * it to a contiguous run keeps seam-crossing between touching monitors while making those
  * dead zones unreachable.
  */
-export function walkableSpan(areas: Area[], cx: number, size: number): Span {
+export function walkableSpan(areas: Area[], cx: number, size: number, artSize = size): Span {
   if (areas.length === 0) return { lo: 0, hi: 0 };
+  const inset = artInset(size, artSize);
   const sorted = [...areas].sort((a, b) => a.x - b.x);
   const x = Math.round(cx);
   let idx = sorted.findIndex((w) => x >= w.x && x < w.x + w.width);
@@ -64,21 +77,23 @@ export function walkableSpan(areas: Area[], cx: number, size: number): Span {
   for (let i = idx + 1; i < sorted.length && Math.abs(sorted[i].x - hi) <= 2; i++) {
     hi = sorted[i].x + sorted[i].width;
   }
-  return { lo, hi: hi - size };
+  // Widen the window bounds by the art inset so the visible art — not the window — reaches
+  // the run's edges.
+  return { lo: lo - inset, hi: hi - size + inset };
 }
 
-/** Leftmost left-edge position across all displays. */
-export function minX(areas: Area[]): number {
+/** Leftmost window-left position that keeps the visible art on-screen. */
+export function minX(areas: Area[], size: number, artSize = size): number {
   let m = Infinity;
   for (const a of areas) m = Math.min(m, a.x);
-  return m === Infinity ? 0 : m;
+  return (m === Infinity ? 0 : m) - artInset(size, artSize);
 }
 
-/** Rightmost left-edge position that still fits a pet of `size` px. */
-export function maxX(areas: Area[], size: number): number {
+/** Rightmost window-left position that keeps the visible art on-screen. */
+export function maxX(areas: Area[], size: number, artSize = size): number {
   let m = -Infinity;
   for (const a of areas) m = Math.max(m, a.x + a.width);
-  return (m === -Infinity ? size : m) - size;
+  return (m === -Infinity ? size : m) - size + artInset(size, artSize);
 }
 
 /**
